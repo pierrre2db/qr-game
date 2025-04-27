@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Générateur de QR Codes</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+    .content {
+      padding: 20px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .qr-card {
+      margin-bottom: 20px;
+      transition: transform 0.2s;
+    }
+    .qr-card:hover {
+      transform: translateY(-5px);
+    }
+    .qr-image {
+      max-width: 100%;
+      height: auto;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .qr-print-container {
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top no-print">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">QR Game Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html">Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-questions.html">Questions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-qrcodes.html">QR Codes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-settings.html">Paramètres</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container content">
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+      <h1>Générateur de QR Codes</h1>
+      <div>
+        <button id="refresh-btn" class="btn btn-outline-primary me-2">
+          <i class="fas fa-sync"></i> Rafraîchir les données
+        </button>
+        <button id="generate-all-btn" class="btn btn-primary me-2">
+          <i class="fas fa-qrcode"></i> Générer tous
+        </button>
+        <button id="print-all-btn" class="btn btn-outline-secondary">
+          <i class="fas fa-print"></i> Imprimer tous
+        </button>
+      </div>
+    </div>
+    
+    <div class="card mb-4 no-print">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Options de génération</h5>
+      </div>
+      <div class="card-body">
+        <form id="qr-options-form" class="row g-3">
+          <div class="col-md-4">
+            <label for="qr-size" class="form-label">Taille (px)</label>
+            <input type="number" class="form-control" id="qr-size" min="100" max="500" value="200">
+          </div>
+          <div class="col-md-4">
+            <label for="qr-color" class="form-label">Couleur</label>
+            <input type="color" class="form-control form-control-color" id="qr-color" value="#000000">
+          </div>
+          <div class="col-md-4">
+            <label for="qr-background" class="form-label">Arrière-plan</label>
+            <input type="color" class="form-control form-control-color" id="qr-background" value="#FFFFFF">
+          </div>
+          <div class="col-12">
+            <label class="form-label">URL de base</label>
+            <div class="input-group">
+              <input type="text" class="form-control" id="qr-base-url" value="http://localhost:3000/game.html?q=">
+              <button class="btn btn-outline-secondary" type="button" id="detect-url-btn">Détecter</button>
+            </div>
+            <small class="form-text text-muted">L'ID de la question sera ajouté à la fin de cette URL</small>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="row" id="qr-codes-container">
+      <div class="col-12">
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i> Cliquez sur "Générer tous" pour créer les QR codes pour toutes les questions.
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container"></div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let questions = [];
+    let selectedQuestionId = null;
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Charger les questions
+      loadQuestions();
+      
+      // Vérifier si un ID de question est présent dans l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      selectedQuestionId = urlParams.get('q');
+      
+      // Configurer les gestionnaires d'événements
+      document.getElementById('generate-all-btn').addEventListener('click', generateAllQRCodes);
+      document.getElementById('print-all-btn').addEventListener('click', printAllQRCodes);
+      document.getElementById('detect-url-btn').addEventListener('click', detectBaseUrl);
+      document.getElementById('refresh-btn').addEventListener('click', refreshData);
+    });
+    
+    // Charger les questions
+    async function loadQuestions() {
+      try {
+        // Ajouter un paramètre timestamp pour éviter la mise en cache
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/questions?_=${timestamp}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          questions = data.questions || [];
+          
+          // Afficher le nombre de questions chargées
+          console.log(`${questions.length} questions chargées:`, questions);
+          showToast(`${questions.length} questions chargées avec succès`, 'success');
+          
+          // Stocker dans le localStorage pour les autres pages
+          localStorage.setItem('qr_game_questions', JSON.stringify(questions));
+        } else {
+          console.error('Erreur API:', response.status, response.statusText);
+          showToast(`Erreur API: ${response.status} ${response.statusText}`, 'danger');
+          
+          // Si l'API échoue, essayer de récupérer depuis le localStorage
+          const storedQuestions = localStorage.getItem('qr_game_questions');
+          if (storedQuestions) {
+            questions = JSON.parse(storedQuestions);
+            showToast('Questions chargées depuis le cache local', 'warning');
+          }
+        }
+        
+        // Si une question spécifique est demandée, générer uniquement son QR code
+        if (selectedQuestionId) {
+          const question = questions.find(q => q.id === selectedQuestionId);
+          if (question) {
+            generateQRCode(question);
+          } else {
+            showToast(`Question avec l'ID ${selectedQuestionId} non trouvée`, 'warning');
+            generateAllQRCodes();
+          }
+        } else {
+          // Sinon, générer tous les QR codes
+          generateAllQRCodes();
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        
+        // Essayer de récupérer depuis le localStorage en cas d'erreur
+        const storedQuestions = localStorage.getItem('qr_game_questions');
+        if (storedQuestions) {
+          questions = JSON.parse(storedQuestions);
+          showToast('Questions chargées depuis le cache local suite à une erreur', 'warning');
+          
+          if (selectedQuestionId) {
+            const question = questions.find(q => q.id === selectedQuestionId);
+            if (question) {
+              generateQRCode(question);
+            } else {
+              showToast(`Question avec l'ID ${selectedQuestionId} non trouvée`, 'warning');
+              generateAllQRCodes();
+            }
+          } else {
+            generateAllQRCodes();
+          }
+        } else {
+          showToast('Erreur lors du chargement des questions', 'danger');
+        }
+      }
+    }
+    
+    // Détecter l'URL de base
+    function detectBaseUrl() {
+      const baseUrl = `${window.location.protocol}//${window.location.host}/game.html?q=`;
+      document.getElementById('qr-base-url').value = baseUrl;
+    }
+    
+    // Rafraîchir les données
+    function refreshData() {
+      localStorage.removeItem('qr_game_questions');
+      loadQuestions();
+    }
+    
+    // Générer tous les QR codes
+    function generateAllQRCodes() {
+      const container = document.getElementById('qr-codes-container');
+      container.innerHTML = '';
+      
+      if (!questions.length) {
+        container.innerHTML = `
+          <div class="col-12">
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i> Aucune question trouvée.
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Générer un QR code pour chaque question
+      questions.forEach(question => {
+        generateQRCode(question);
+      });
+    }
+    
+    // Générer un QR code pour une question
+    function generateQRCode(question) {
+      // Récupérer les options
+      const size = document.getElementById('qr-size').value;
+      const color = document.getElementById('qr-color').value;
+      const background = document.getElementById('qr-background').value;
+      const baseUrl = document.getElementById('qr-base-url').value;
+      
+      // Créer l'URL complète
+      const qrUrl = `${baseUrl}${question.id}`;
+      
+      // Créer l'URL pour l'API QR code
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrUrl)}&color=${encodeURIComponent(color.substring(1))}&bgcolor=${encodeURIComponent(background.substring(1))}`;
+      
+      // Créer la carte pour le QR code
+      const container = document.getElementById('qr-codes-container');
+      const qrCard = document.createElement('div');
+      qrCard.className = 'col-md-4 col-sm-6';
+      qrCard.innerHTML = `
+        <div class="card qr-card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">${question.id}</span>
+            <a href="${qrApiUrl}" download="qr_${question.id}.png" class="btn btn-sm btn-outline-primary no-print">
+              <i class="fas fa-download"></i> Télécharger
+            </a>
+          </div>
+          <div class="card-body text-center">
+            <img src="${qrApiUrl}" alt="QR Code pour ${question.id}" class="qr-image mb-3">
+            <h6>${question.title}</h6>
+            <p class="text-muted small">${qrUrl}</p>
+          </div>
+          <div class="card-footer no-print">
+            <a href="${qrUrl}" target="_blank" class="btn btn-sm btn-outline-secondary w-100">
+              <i class="fas fa-external-link-alt"></i> Tester
+            </a>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(qrCard);
+      
+      // Si c'est la question sélectionnée, mettre en évidence sa carte
+      if (selectedQuestionId && question.id === selectedQuestionId) {
+        qrCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        qrCard.querySelector('.card').classList.add('border-primary');
+      }
+    }
+    
+    // Imprimer tous les QR codes
+    function printAllQRCodes() {
+      if (!questions.length) {
+        showToast('Aucune question trouvée', 'warning');
+        return;
+      }
+      
+      // Ajouter une classe pour l'impression
+      document.body.classList.add('printing');
+      
+      // Imprimer la page
+      window.print();
+      
+      // Retirer la classe après l'impression
+      setTimeout(() => {
+        document.body.classList.remove('printing');
+      }, 1000);
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

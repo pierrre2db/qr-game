@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Administration</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- DataTables CSS -->
+  <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .content-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-content {
+      flex: 1;
+      padding: 20px;
+    }
+    .sidebar {
+      width: 250px;
+      position: fixed;
+      top: 56px;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      padding: 20px 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background-color: #f8f9fa;
+      border-right: 1px solid #dee2e6;
+    }
+    .sidebar .nav-link {
+      font-weight: 500;
+      color: #333;
+      padding: 0.5rem 1rem;
+      border-radius: 0.25rem;
+      margin: 0.2rem 0;
+    }
+    .sidebar .nav-link:hover {
+      background-color: #e9ecef;
+    }
+    .sidebar .nav-link.active {
+      color: #fff;
+      background-color: #0d6efd;
+    }
+    .sidebar .nav-link i {
+      margin-right: 10px;
+      width: 20px;
+      text-align: center;
+    }
+    .content-section {
+      display: none;
+    }
+    .content-section.active {
+      display: block;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .question-card {
+      margin-bottom: 15px;
+    }
+    .qr-preview {
+      text-align: center;
+      padding: 10px;
+    }
+    .qr-image {
+      max-width: 150px;
+      height: auto;
+    }
+    .option-row {
+      margin-bottom: 5px;
+    }
+    .progress-info {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+    .table-actions {
+      white-space: nowrap;
+    }
+    .table-actions .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .form-check-input.is-correct {
+      background-color: #198754;
+      border-color: #198754;
+    }
+    @media (max-width: 767.98px) {
+      .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+      }
+      body {
+        padding-top: 56px;
+      }
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .qr-print-container {
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Container -->
+  <div id="login-container" class="login-container">
+    <h2 class="text-center mb-4">QR Game - Administration</h2>
+    <div class="card">
+      <div class="card-body">
+        <form id="login-form">
+          <div class="mb-3">
+            <label for="username" class="form-label">Nom d'utilisateur</label>
+            <input type="text" class="form-control" id="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="password" required>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">Connexion</button>
+          </div>
+        </form>
+        <div class="mt-3 text-center">
+          <small class="text-muted">Utilisateur par défaut : admin / admin123</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Application (initially hidden) -->
+  <div id="app-container" style="display: none;">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">QR Game Admin</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                <i class="fas fa-user-circle"></i> <span id="user-name">Admin</span>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" id="logout-button"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content-wrapper">
+      <!-- Sidebar -->
+      <div class="sidebar d-md-block d-none">
+        <ul class="nav flex-column">
+          <li class="nav-item">
+            <a class="nav-link active" href="#dashboard-section" data-section="dashboard">
+              <i class="fas fa-tachometer-alt"></i> Tableau de bord
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#questions-section" data-section="questions">
+              <i class="fas fa-question-circle"></i> Questions
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#responses-section" data-section="responses">
+              <i class="fas fa-reply"></i> Réponses
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#qr-codes-section" data-section="qr-codes">
+              <i class="fas fa-qrcode"></i> QR Codes
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#import-export-section" data-section="import-export">
+              <i class="fas fa-exchange-alt"></i> Import/Export
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Mobile Navigation -->
+      <div class="d-md-none d-block sidebar">
+        <div class="nav nav-pills nav-fill">
+          <a class="nav-link active" href="#dashboard-section" data-section="dashboard">
+            <i class="fas fa-tachometer-alt"></i>
+          </a>
+          <a class="nav-link" href="#questions-section" data-section="questions">
+            <i class="fas fa-question-circle"></i>
+          </a>
+          <a class="nav-link" href="#responses-section" data-section="responses">
+            <i class="fas fa-reply"></i>
+          </a>
+          <a class="nav-link" href="#qr-codes-section" data-section="qr-codes">
+            <i class="fas fa-qrcode"></i>
+          </a>
+          <a class="nav-link" href="#import-export-section" data-section="import-export">
+            <i class="fas fa-exchange-alt"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <main class="main-content ms-md-250">
+        <!-- Dashboard Section -->
+        <section id="dashboard-section" class="content-section active">
+          <h2 class="mb-4">Tableau de bord</h2>
+          
+          <div class="row">
+            <div class="col-md-4 mb-4">
+              <div class="card text-white bg-primary">
+                <div class="card-body">
+                  <h5 class="card-title">Questions</h5>
+                  <p class="card-text display-4" id="total-questions">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+              <div class="card text-white bg-success">
+                <div class="card-body">
+                  <h5 class="card-title">Réponses</h5>
+                  <p class="card-text display-4" id="total-responses">0</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+              <div class="card text-white bg-info">
+                <div class="card-body">
+                  <h5 class="card-title">Joueurs</h5>
+                  <p class="card-text display-4" id="total-players">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Activité récente</h5>
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                      <thead>
+                        <tr>
+                          <th>Joueur</th>
+                          <th>Question</th>
+                          <th>Réponse</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody id="recent-activity-table">
+                        <tr>
+                          <td colspan="4" class="text-center">Aucune activité récente</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+              <div class="card">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Taux de réussite par question</h5>
+                </div>
+                <div class="card-body">
+                  <canvas id="success-rate-chart" height="250"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Questions Section -->
+        <section id="questions-section" class="content-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestion des questions</h2>
+            <button id="add-question-btn" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Ajouter une question
+            </button>
+          </div>
+          
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table id="questions-table" class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Titre</th>
+                      <th>Type</th>
+                      <th>Points</th>
+                      <th>Ordre</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="questions-table-body">
+                    <!-- Les questions seront chargées ici -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modal pour ajouter/éditer une question -->
+          <div class="modal fade" id="question-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="question-modal-title">Ajouter une question</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <form id="question-form">
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label for="question-id" class="form-label">ID</label>
+                        <input type="text" class="form-control" id="question-id" required>
+                        <small class="form-text text-muted">Identifiant unique pour la question (ex: Q1, Q2)</small>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="question-type" class="form-label">Type</label>
+                        <select class="form-select" id="question-type" required>
+                          <option value="standard">QCM</option>
+                          <option value="text">Texte</option>
+                          <option value="number">Numérique</option>
+                          <option value="comment">Commentaire</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="question-title" class="form-label">Titre</label>
+                      <input type="text" class="form-control" id="question-title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label for="question-description" class="form-label">Description</label>
+                      <textarea class="form-control" id="question-description" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label for="question-points" class="form-label">Points</label>
+                        <input type="number" class="form-control" id="question-points" min="0" value="1">
+                      </div>
+                      <div class="col-md-6">
+                        <label for="question-order" class="form-label">Ordre</label>
+                        <input type="number" class="form-control" id="question-order" min="1" value="1">
+                      </div>
+                    </div>
+                    
+                    <div id="options-container" class="mb-3">
+                      <label class="form-label">Options</label>
+                      <div id="options-list">
+                        <!-- Les options seront ajoutées ici -->
+                      </div>
+                      <button type="button" id="add-option-btn" class="btn btn-sm btn-outline-secondary mt-2">
+                        <i class="fas fa-plus"></i> Ajouter une option
+                      </button>
+                    </div>
+                    
+                    <div id="correct-answer-container" class="mb-3">
+                      <label for="question-correct-answer" class="form-label">Réponse correcte</label>
+                      <input type="text" class="form-control" id="question-correct-answer">
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                      <input class="form-check-input" type="checkbox" id="question-is-end-game">
+                      <label class="form-check-label" for="question-is-end-game">
+                        Question finale (termine le jeu)
+                      </label>
+                    </div>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="button" id="save-question-btn" class="btn btn-primary">Enregistrer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Modal de confirmation de suppression -->
+          <div class="modal fade" id="delete-question-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Confirmer la suppression</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p>Êtes-vous sûr de vouloir supprimer cette question ? Cette action est irréversible.</p>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="button" id="confirm-delete-btn" class="btn btn-danger">Supprimer</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Réponses Section -->
+        <section id="responses-section" class="content-section">
+          <!-- Le contenu de la section Réponses sera ajouté plus tard -->
+        </section>
+
+        <!-- QR Codes Section -->
+        <section id="qr-codes-section" class="content-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Générateur de QR Codes</h2>
+            <div>
+              <button id="generate-all-qr-btn" class="btn btn-primary me-2">
+                <i class="fas fa-sync"></i> Générer tous les QR codes
+              </button>
+              <button id="print-all-qr-btn" class="btn btn-outline-secondary">
+                <i class="fas fa-print"></i> Imprimer tous
+              </button>
+            </div>
+          </div>
+          
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Options de génération</h5>
+            </div>
+            <div class="card-body">
+              <form id="qr-options-form" class="row g-3">
+                <div class="col-md-4">
+                  <label for="qr-size" class="form-label">Taille (px)</label>
+                  <input type="number" class="form-control" id="qr-size" min="100" max="500" value="200">
+                </div>
+                <div class="col-md-4">
+                  <label for="qr-color" class="form-label">Couleur</label>
+                  <input type="color" class="form-control form-control-color" id="qr-color" value="#000000">
+                </div>
+                <div class="col-md-4">
+                  <label for="qr-background" class="form-label">Arrière-plan</label>
+                  <input type="color" class="form-control form-control-color" id="qr-background" value="#FFFFFF">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">URL de base</label>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="qr-base-url" value="http://localhost:3000/game.html?q=">
+                    <button class="btn btn-outline-secondary" type="button" id="detect-url-btn">Détecter</button>
+                  </div>
+                  <small class="form-text text-muted">L'ID de la question sera ajouté à la fin de cette URL</small>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          <div class="row" id="qr-codes-container">
+            <!-- Les QR codes seront générés ici -->
+            <div class="col-12">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> Cliquez sur "Générer tous les QR codes" pour commencer.
+              </div>
+            </div>
+          </div>
+          
+          <!-- Template pour l'impression -->
+          <div id="print-template" class="d-none">
+            <div class="container-fluid">
+              <div class="row" id="print-qr-container"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Import/Export Section -->
+        <section id="import-export-section" class="content-section">
+          <h2 class="mb-4">Import / Export</h2>
+          
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Importer des questions</h5>
+                </div>
+                <div class="card-body">
+                  <p>Importez un fichier JSON contenant des questions pour les ajouter à votre jeu.</p>
+                  <div class="mb-3">
+                    <label for="import-file" class="form-label">Fichier JSON</label>
+                    <input class="form-control" type="file" id="import-file" accept=".json">
+                  </div>
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="replace-existing">
+                    <label class="form-check-label" for="replace-existing">
+                      Remplacer les questions existantes
+                    </label>
+                  </div>
+                  <button id="import-btn" class="btn btn-primary">
+                    <i class="fas fa-file-import"></i> Importer
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Exporter les questions</h5>
+                </div>
+                <div class="card-body">
+                  <p>Exportez toutes vos questions dans un fichier JSON.</p>
+                  <button id="export-json-btn" class="btn btn-primary mb-2">
+                    <i class="fas fa-file-export"></i> Exporter en JSON
+                  </button>
+                  <button id="export-csv-btn" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-csv"></i> Exporter en CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Exporter les réponses</h5>
+                </div>
+                <div class="card-body">
+                  <p>Exportez toutes les réponses des joueurs.</p>
+                  <button id="export-responses-json-btn" class="btn btn-primary mb-2">
+                    <i class="fas fa-file-export"></i> Exporter en JSON
+                  </button>
+                  <button id="export-responses-csv-btn" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-csv"></i> Exporter en CSV
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Sauvegarde complète</h5>
+                </div>
+                <div class="card-body">
+                  <p>Créez une sauvegarde complète de toutes les données du jeu.</p>
+                  <button id="backup-btn" class="btn btn-primary">
+                    <i class="fas fa-download"></i> Télécharger la sauvegarde
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container"></div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  <!-- DataTables -->
+  <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+  <!-- jQuery (required for DataTables) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script>
+    // Variables globales
+    const AUTH_TOKEN_KEY = 'qr_game_admin_token';
+    const DEFAULT_USER = {
+      username: 'admin',
+      password: 'admin123',
+      name: 'Administrateur'
+    };
+    
+    let questions = [];
+    let responses = [];
+    
+    // Éléments DOM
+    const loginContainer = document.getElementById('login-container');
+    const appContainer = document.getElementById('app-container');
+    const loginForm = document.getElementById('login-form');
+    const logoutButton = document.getElementById('logout-button');
+    const userName = document.getElementById('user-name');
+    const navLinks = document.querySelectorAll('.nav-link[data-section]');
+    const contentSections = document.querySelectorAll('.content-section');
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Vérifier si l'utilisateur est déjà connecté
+      if (isAuthenticated()) {
+        showApp();
+        loadDashboardData();
+      } else {
+        showLogin();
+      }
+      
+      // Gestionnaire pour le formulaire de connexion
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        if (login(username, password)) {
+          showApp();
+          loadDashboardData();
+        }
+      });
+      
+      // Gestionnaire pour le bouton de déconnexion
+      logoutButton.addEventListener('click', () => {
+        logout();
+        showLogin();
+      });
+      
+      // Gestionnaire pour la navigation
+      navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const sectionId = link.getAttribute('data-section');
+          showSection(sectionId);
+        });
+      });
+    });
+    
+    // Vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return !!localStorage.getItem(AUTH_TOKEN_KEY);
+    }
+    
+    // Connecter l'utilisateur
+    function login(username, password) {
+      if (username === DEFAULT_USER.username && password === DEFAULT_USER.password) {
+        // Générer un token simulé
+        const token = Date.now().toString(36) + Math.random().toString(36).substring(2);
+        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        return true;
+      } else {
+        showToast('Nom d\'utilisateur ou mot de passe incorrect', 'danger');
+        return false;
+      }
+    }
+    
+    // Déconnecter l'utilisateur
+    function logout() {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+    }
+    
+    // Afficher l'application
+    function showApp() {
+      loginContainer.style.display = 'none';
+      appContainer.style.display = 'block';
+      userName.textContent = DEFAULT_USER.name;
+    }
+    
+    // Afficher le formulaire de connexion
+    function showLogin() {
+      loginContainer.style.display = 'block';
+      appContainer.style.display = 'none';
+    }
+    
+    // Afficher une section
+    function showSection(sectionId) {
+      // Mettre à jour les liens de navigation
+      navLinks.forEach(link => {
+        if (link.getAttribute('data-section') === sectionId) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+      
+      // Afficher la section correspondante
+      contentSections.forEach(section => {
+        if (section.id === `${sectionId}-section`) {
+          section.classList.add('active');
+        } else {
+          section.classList.remove('active');
+        }
+      });
+      
+      // Charger les données spécifiques à la section
+      switch (sectionId) {
+        case 'dashboard':
+          loadDashboardData();
+          break;
+        case 'questions':
+          loadQuestions();
+          break;
+        case 'responses':
+          loadResponses();
+          break;
+        case 'qr-codes':
+          loadQRCodes();
+          break;
+        case 'import-export':
+          // Rien à charger
+          break;
+      }
+    }
+    
+    // Charger les données du tableau de bord
+    async function loadDashboardData() {
+      try {
+        // Charger les questions
+        const questionsResponse = await fetch('/api/questions');
+        if (questionsResponse.ok) {
+          const questionsData = await questionsResponse.json();
+          questions = questionsData.questions || [];
+          document.getElementById('total-questions').textContent = questions.length;
+        }
+        
+        // Charger les réponses
+        const responsesData = await fetch('/api/stats').then(res => res.json());
+        document.getElementById('total-responses').textContent = responsesData.totalResponses || 0;
+        document.getElementById('total-players').textContent = responsesData.uniquePlayers || 0;
+        
+        // Afficher l'activité récente
+        updateRecentActivity(responsesData);
+        
+        // Afficher le graphique de taux de réussite
+        updateSuccessRateChart(responsesData);
+      } catch (error) {
+        console.error('Erreur lors du chargement des données du tableau de bord:', error);
+        showToast('Erreur lors du chargement des données', 'danger');
+      }
+    }
+    
+    // Mettre à jour l'activité récente
+    function updateRecentActivity(data) {
+      const tableBody = document.getElementById('recent-activity-table');
+      tableBody.innerHTML = '';
+      
+      if (!data.responses || !data.responses.length) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Aucune activité récente</td></tr>';
+        return;
+      }
+      
+      // Prendre les 5 dernières réponses
+      const recentResponses = data.responses.slice(-5).reverse();
+      
+      recentResponses.forEach(response => {
+        const row = document.createElement('tr');
+        
+        const playerCell = document.createElement('td');
+        playerCell.textContent = response.playerName || response.playerId;
+        
+        const questionCell = document.createElement('td');
+        const question = questions.find(q => q.id === response.questionId);
+        questionCell.textContent = question ? question.title : response.questionId;
+        
+        const responseCell = document.createElement('td');
+        responseCell.textContent = response.response;
+        
+        const dateCell = document.createElement('td');
+        const date = new Date(response.timestamp);
+        dateCell.textContent = date.toLocaleString();
+        
+        row.appendChild(playerCell);
+        row.appendChild(questionCell);
+        row.appendChild(responseCell);
+        row.appendChild(dateCell);
+        
+        tableBody.appendChild(row);
+      });
+    }
+    
+    // Mettre à jour le graphique de taux de réussite
+    function updateSuccessRateChart(data) {
+      if (!data.questionStats || !data.questionStats.length) {
+        return;
+      }
+      
+      const ctx = document.getElementById('success-rate-chart').getContext('2d');
+      
+      const labels = data.questionStats.map(stat => stat.title);
+      const successRates = data.questionStats.map(stat => (stat.correctRate * 100).toFixed(1));
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Taux de réussite (%)',
+            data: successRates,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+    
+    // Les fonctions pour les autres sections seront ajoutées dans les prochains fichiers
+  </script>
+
+  <script>
+    // Fonctions pour la gestion des questions
+    let currentQuestionId = null;
+    
+    // Charger les questions
+    async function loadQuestions() {
+      try {
+        const response = await fetch('/api/questions');
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        questions = data.questions || [];
+        
+        displayQuestions();
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        showToast('Erreur lors du chargement des questions', 'danger');
+      }
+    }
+    
+    // Afficher les questions dans le tableau
+    function displayQuestions() {
+      const tableBody = document.getElementById('questions-table-body');
+      tableBody.innerHTML = '';
+      
+      if (!questions.length) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune question trouvée</td></tr>';
+        return;
+      }
+      
+      questions.forEach(question => {
+        const row = document.createElement('tr');
+        
+        const idCell = document.createElement('td');
+        idCell.textContent = question.id;
+        
+        const titleCell = document.createElement('td');
+        titleCell.textContent = question.title;
+        
+        const typeCell = document.createElement('td');
+        const typeMap = {
+          'standard': 'QCM',
+          'text': 'Texte',
+          'number': 'Numérique',
+          'comment': 'Commentaire'
+        };
+        typeCell.textContent = typeMap[question.type] || question.type;
+        
+        const pointsCell = document.createElement('td');
+        pointsCell.textContent = question.points;
+        
+        const orderCell = document.createElement('td');
+        orderCell.textContent = question.order;
+        
+        const actionsCell = document.createElement('td');
+        actionsCell.className = 'table-actions';
+        actionsCell.innerHTML = `
+          <button class="btn btn-sm btn-outline-primary edit-question-btn" data-id="${question.id}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger delete-question-btn" data-id="${question.id}">
+            <i class="fas fa-trash"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary qr-question-btn" data-id="${question.id}">
+            <i class="fas fa-qrcode"></i>
+          </button>
+        `;
+        
+        row.appendChild(idCell);
+        row.appendChild(titleCell);
+        row.appendChild(typeCell);
+        row.appendChild(pointsCell);
+        row.appendChild(orderCell);
+        row.appendChild(actionsCell);
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Ajouter les gestionnaires d'événements
+      document.querySelectorAll('.edit-question-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const questionId = btn.getAttribute('data-id');
+          editQuestion(questionId);
+        });
+      });
+      
+      document.querySelectorAll('.delete-question-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const questionId = btn.getAttribute('data-id');
+          showDeleteModal(questionId);
+        });
+      });
+      
+      document.querySelectorAll('.qr-question-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const questionId = btn.getAttribute('data-id');
+          showSection('qr-codes');
+          generateQRCode(questionId);
+        });
+      });
+    }
+    
+    // Ajouter une nouvelle question
+    function addQuestion() {
+      currentQuestionId = null;
+      
+      // Réinitialiser le formulaire
+      document.getElementById('question-form').reset();
+      document.getElementById('question-id').value = `Q${questions.length + 1}`;
+      document.getElementById('question-order').value = questions.length + 1;
+      document.getElementById('options-list').innerHTML = '';
+      
+      // Ajouter des options par défaut pour les QCM
+      if (document.getElementById('question-type').value === 'standard') {
+        for (let i = 0; i < 4; i++) {
+          addOptionField();
+        }
+      }
+      
+      // Mettre à jour le titre du modal
+      document.getElementById('question-modal-title').textContent = 'Ajouter une question';
+      
+      // Afficher le modal
+      const modal = new bootstrap.Modal(document.getElementById('question-modal'));
+      modal.show();
+    }
+    
+    // Éditer une question existante
+    function editQuestion(questionId) {
+      const question = questions.find(q => q.id === questionId);
+      if (!question) {
+        showToast('Question non trouvée', 'danger');
+        return;
+      }
+      
+      currentQuestionId = questionId;
+      
+      // Remplir le formulaire
+      document.getElementById('question-id').value = question.id;
+      document.getElementById('question-type').value = question.type;
+      document.getElementById('question-title').value = question.title;
+      document.getElementById('question-description').value = question.description;
+      document.getElementById('question-points').value = question.points;
+      document.getElementById('question-order').value = question.order;
+      document.getElementById('question-correct-answer').value = question.correctAnswer || '';
+      document.getElementById('question-is-end-game').checked = question.isEndGame || false;
+      
+      // Gérer les options
+      document.getElementById('options-list').innerHTML = '';
+      if (question.type === 'standard' && question.options && question.options.length) {
+        question.options.forEach(option => {
+          addOptionField(option);
+        });
+      } else if (question.type === 'standard') {
+        for (let i = 0; i < 4; i++) {
+          addOptionField();
+        }
+      }
+      
+      // Mettre à jour l'affichage en fonction du type
+      updateFormByType(question.type);
+      
+      // Mettre à jour le titre du modal
+      document.getElementById('question-modal-title').textContent = 'Modifier la question';
+      
+      // Afficher le modal
+      const modal = new bootstrap.Modal(document.getElementById('question-modal'));
+      modal.show();
+    }
+    
+    // Ajouter un champ d'option
+    function addOptionField(value = '') {
+      const optionsList = document.getElementById('options-list');
+      const index = optionsList.children.length;
+      
+      const optionRow = document.createElement('div');
+      optionRow.className = 'input-group mb-2 option-row';
+      
+      optionRow.innerHTML = `
+        <input type="text" class="form-control option-input" value="${value}" placeholder="Option ${index + 1}">
+        <button type="button" class="btn btn-outline-danger remove-option-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      optionsList.appendChild(optionRow);
+      
+      // Ajouter le gestionnaire pour supprimer l'option
+      optionRow.querySelector('.remove-option-btn').addEventListener('click', () => {
+        optionsList.removeChild(optionRow);
+      });
+    }
+    
+    // Mettre à jour le formulaire en fonction du type de question
+    function updateFormByType(type) {
+      const optionsContainer = document.getElementById('options-container');
+      const correctAnswerContainer = document.getElementById('correct-answer-container');
+      
+      switch (type) {
+        case 'standard':
+          optionsContainer.style.display = 'block';
+          correctAnswerContainer.style.display = 'block';
+          break;
+        case 'text':
+        case 'number':
+          optionsContainer.style.display = 'none';
+          correctAnswerContainer.style.display = 'block';
+          break;
+        case 'comment':
+          optionsContainer.style.display = 'none';
+          correctAnswerContainer.style.display = 'none';
+          break;
+      }
+    }
+    
+    // Sauvegarder une question
+    async function saveQuestion() {
+      try {
+        // Récupérer les valeurs du formulaire
+        const id = document.getElementById('question-id').value.trim();
+        const type = document.getElementById('question-type').value;
+        const title = document.getElementById('question-title').value.trim();
+        const description = document.getElementById('question-description').value.trim();
+        const points = parseInt(document.getElementById('question-points').value) || 0;
+        const order = parseInt(document.getElementById('question-order').value) || 1;
+        const correctAnswer = document.getElementById('question-correct-answer').value.trim();
+        const isEndGame = document.getElementById('question-is-end-game').checked;
+        
+        // Valider les champs requis
+        if (!id || !title || !description) {
+          showToast('Veuillez remplir tous les champs obligatoires', 'warning');
+          return;
+        }
+        
+        // Récupérer les options pour les QCM
+        let options = [];
+        if (type === 'standard') {
+          const optionInputs = document.querySelectorAll('.option-input');
+          options = Array.from(optionInputs).map(input => input.value.trim());
+          
+          // Valider les options
+          if (options.some(opt => !opt)) {
+            showToast('Veuillez remplir toutes les options', 'warning');
+            return;
+          }
+          
+          // Valider la réponse correcte
+          if (!correctAnswer) {
+            showToast('Veuillez spécifier une réponse correcte', 'warning');
+            return;
+          }
+          
+          if (!options.includes(correctAnswer)) {
+            showToast('La réponse correcte doit être l\'une des options', 'warning');
+            return;
+          }
+        }
+        
+        // Créer l'objet question
+        const question = {
+          id,
+          type,
+          title,
+          description,
+          points,
+          order,
+          options,
+          correctAnswer: type !== 'comment' ? correctAnswer : '',
+          isEndGame
+        };
+        
+        // Déterminer si c'est une création ou une mise à jour
+        const isUpdate = currentQuestionId !== null;
+        
+        // Mettre à jour les questions
+        if (isUpdate) {
+          const index = questions.findIndex(q => q.id === currentQuestionId);
+          if (index !== -1) {
+            questions[index] = question;
+          } else {
+            questions.push(question);
+          }
+        } else {
+          // Vérifier si l'ID existe déjà
+          if (questions.some(q => q.id === id)) {
+            showToast('Cet ID de question existe déjà', 'warning');
+            return;
+          }
+          
+          questions.push(question);
+        }
+        
+        // Trier les questions par ordre
+        questions.sort((a, b) => a.order - b.order);
+        
+        // Envoyer les questions au serveur
+        const response = await fetch('/api/questions/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ questions })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        // Fermer le modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('question-modal'));
+        modal.hide();
+        
+        // Recharger les questions
+        loadQuestions();
+        
+        showToast(`Question ${isUpdate ? 'modifiée' : 'ajoutée'} avec succès`, 'success');
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la question:', error);
+        showToast('Erreur lors de la sauvegarde de la question', 'danger');
+      }
+    }
+    
+    // Afficher le modal de confirmation de suppression
+    function showDeleteModal(questionId) {
+      currentQuestionId = questionId;
+      
+      const modal = new bootstrap.Modal(document.getElementById('delete-question-modal'));
+      modal.show();
+    }
+    
+    // Supprimer une question
+    async function deleteQuestion() {
+      try {
+        if (!currentQuestionId) {
+          return;
+        }
+        
+        // Supprimer la question du tableau
+        questions = questions.filter(q => q.id !== currentQuestionId);
+        
+        // Envoyer les questions mises à jour au serveur
+        const response = await fetch('/api/questions/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ questions })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        // Fermer le modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('delete-question-modal'));
+        modal.hide();
+        
+        // Recharger les questions
+        loadQuestions();
+        
+        showToast('Question supprimée avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la question:', error);
+        showToast('Erreur lors de la suppression de la question', 'danger');
+      }
+    }
+    
+    // Charger les réponses
+    async function loadResponses() {
+      try {
+        const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        responses = data.responses || [];
+        
+        // Afficher les réponses (à implémenter)
+      } catch (error) {
+        console.error('Erreur lors du chargement des réponses:', error);
+        showToast('Erreur lors du chargement des réponses', 'danger');
+      }
+    }
+    
+    // Fonctions pour les QR codes
+    
+    // Charger les QR codes
+    function loadQRCodes() {
+      // Réinitialiser le conteneur
+      const container = document.getElementById('qr-codes-container');
+      container.innerHTML = `
+        <div class="col-12">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> Cliquez sur "Générer tous les QR codes" pour commencer.
+          </div>
+        </div>
+      `;
+      
+      // Configurer les gestionnaires d'événements
+      document.getElementById('generate-all-qr-btn').addEventListener('click', generateAllQRCodes);
+      document.getElementById('print-all-qr-btn').addEventListener('click', printAllQRCodes);
+      document.getElementById('detect-url-btn').addEventListener('click', detectBaseUrl);
+    }
+    
+    // Détecter l'URL de base
+    function detectBaseUrl() {
+      const baseUrl = `${window.location.protocol}//${window.location.host}/game.html?q=`;
+      document.getElementById('qr-base-url').value = baseUrl;
+    }
+    
+    // Générer tous les QR codes
+    function generateAllQRCodes() {
+      const container = document.getElementById('qr-codes-container');
+      container.innerHTML = '';
+      
+      if (!questions.length) {
+        container.innerHTML = `
+          <div class="col-12">
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i> Aucune question trouvée.
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Récupérer les options
+      const size = document.getElementById('qr-size').value;
+      const color = document.getElementById('qr-color').value;
+      const background = document.getElementById('qr-background').value;
+      const baseUrl = document.getElementById('qr-base-url').value;
+      
+      // Générer un QR code pour chaque question
+      questions.forEach(question => {
+        generateQRCode(question.id, { size, color, background, baseUrl });
+      });
+    }
+    
+    // Générer un QR code pour une question
+    function generateQRCode(questionId, options = {}) {
+      const question = questions.find(q => q.id === questionId);
+      if (!question) {
+        showToast('Question non trouvée', 'danger');
+        return;
+      }
+      
+      // Récupérer les options ou utiliser les valeurs par défaut
+      const size = options.size || document.getElementById('qr-size').value;
+      const color = options.color || document.getElementById('qr-color').value;
+      const background = options.background || document.getElementById('qr-background').value;
+      const baseUrl = options.baseUrl || document.getElementById('qr-base-url').value;
+      
+      // Créer l'URL complète
+      const qrUrl = `${baseUrl}${question.id}`;
+      
+      // Créer l'URL pour l'API QR code
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrUrl)}&color=${encodeURIComponent(color.substring(1))}&bgcolor=${encodeURIComponent(background.substring(1))}`;
+      
+      // Créer la carte pour le QR code
+      const container = document.getElementById('qr-codes-container');
+      const qrCard = document.createElement('div');
+      qrCard.className = 'col-md-4 col-sm-6 mb-4';
+      qrCard.innerHTML = `
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold">${question.id}</span>
+            <a href="${qrApiUrl}" download="qr_${question.id}.png" class="btn btn-sm btn-outline-primary">
+              <i class="fas fa-download"></i> Télécharger
+            </a>
+          </div>
+          <div class="card-body text-center">
+            <img src="${qrApiUrl}" alt="QR Code pour ${question.id}" class="img-fluid mb-3">
+            <h6>${question.title}</h6>
+            <p class="text-muted small">${qrUrl}</p>
+          </div>
+          <div class="card-footer">
+            <a href="${qrUrl}" target="_blank" class="btn btn-sm btn-outline-secondary w-100">
+              <i class="fas fa-external-link-alt"></i> Tester
+            </a>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(qrCard);
+    }
+    
+    // Imprimer tous les QR codes
+    function printAllQRCodes() {
+      if (!questions.length) {
+        showToast('Aucune question trouvée', 'warning');
+        return;
+      }
+      
+      // Récupérer les options
+      const size = document.getElementById('qr-size').value;
+      const color = document.getElementById('qr-color').value;
+      const background = document.getElementById('qr-background').value;
+      const baseUrl = document.getElementById('qr-base-url').value;
+      
+      // Préparer le contenu pour l'impression
+      const printContainer = document.getElementById('print-qr-container');
+      printContainer.innerHTML = '';
+      
+      questions.forEach(question => {
+        // Créer l'URL complète
+        const qrUrl = `${baseUrl}${question.id}`;
+        
+        // Créer l'URL pour l'API QR code
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrUrl)}&color=${encodeURIComponent(color.substring(1))}&bgcolor=${encodeURIComponent(background.substring(1))}`;
+        
+        const qrPrintCard = document.createElement('div');
+        qrPrintCard.className = 'col-md-4 col-sm-6 mb-4 qr-print-container';
+        qrPrintCard.innerHTML = `
+          <div class="card h-100">
+            <div class="card-body text-center">
+              <img src="${qrApiUrl}" alt="QR Code pour ${question.id}" class="img-fluid mb-3">
+              <h5>${question.id}: ${question.title}</h5>
+              <p class="text-muted small">${qrUrl}</p>
+            </div>
+          </div>
+        `;
+        
+        printContainer.appendChild(qrPrintCard);
+      });
+      
+      // Ouvrir la fenêtre d'impression
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>QR Codes - Impression</title>
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+          <style>
+            @media print {
+              .qr-print-container {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container-fluid py-4">
+            <h1 class="mb-4">QR Codes pour toutes les questions</h1>
+            <div class="row">
+              ${printContainer.innerHTML}
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+    
+    // Fonctions pour l'import/export
+    
+    // Importer des questions
+    async function importQuestions() {
+      const fileInput = document.getElementById('import-file');
+      const replaceExisting = document.getElementById('replace-existing').checked;
+      
+      if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Veuillez sélectionner un fichier', 'warning');
+        return;
+      }
+      
+      try {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+          try {
+            const content = e.target.result;
+            const importedData = JSON.parse(content);
+            
+            if (!importedData.questions || !Array.isArray(importedData.questions)) {
+              showToast('Format de fichier invalide', 'danger');
+              return;
+            }
+            
+            // Mettre à jour les questions
+            if (replaceExisting) {
+              questions = importedData.questions;
+            } else {
+              // Fusionner les questions en évitant les doublons
+              const existingIds = questions.map(q => q.id);
+              const newQuestions = importedData.questions.filter(q => !existingIds.includes(q.id));
+              questions = [...questions, ...newQuestions];
+            }
+            
+            // Trier les questions par ordre
+            questions.sort((a, b) => a.order - b.order);
+            
+            // Envoyer les questions au serveur
+            const response = await fetch('/api/questions/import', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ questions })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            // Recharger les questions
+            loadQuestions();
+            
+            showToast('Questions importées avec succès', 'success');
+          } catch (error) {
+            console.error('Erreur lors de l\'importation des questions:', error);
+            showToast('Erreur lors de l\'importation des questions', 'danger');
+          }
+        };
+        
+        reader.readAsText(file);
+      } catch (error) {
+        console.error('Erreur lors de la lecture du fichier:', error);
+        showToast('Erreur lors de la lecture du fichier', 'danger');
+      }
+    }
+    
+    // Exporter les questions en JSON
+    function exportQuestionsJSON() {
+      if (!questions.length) {
+        showToast('Aucune question à exporter', 'warning');
+        return;
+      }
+      
+      const data = JSON.stringify({ questions }, null, 2);
+      downloadFile(data, 'questions.json', 'application/json');
+    }
+    
+    // Exporter les questions en CSV
+    function exportQuestionsCSV() {
+      if (!questions.length) {
+        showToast('Aucune question à exporter', 'warning');
+        return;
+      }
+      
+      // Créer l'en-tête CSV
+      let csv = 'ID,Type,Titre,Description,Points,Ordre,Options,Réponse Correcte\n';
+      
+      // Ajouter les données
+      questions.forEach(question => {
+        const options = question.options ? `"${question.options.join(';')}"` : '';
+        csv += `${question.id},${question.type},"${question.title.replace(/"/g, '""')}","${question.description.replace(/"/g, '""')}",${question.points},${question.order},${options},"${question.correctAnswer || ''}"\n`;
+      });
+      
+      downloadFile(csv, 'questions.csv', 'text/csv');
+    }
+    
+    // Télécharger un fichier
+    function downloadFile(content, fileName, contentType) {
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    }
+    
+    // Initialisation des gestionnaires d'événements
+    document.addEventListener('DOMContentLoaded', () => {
+      // Gestionnaires pour les questions
+      document.getElementById('add-question-btn').addEventListener('click', addQuestion);
+      document.getElementById('save-question-btn').addEventListener('click', saveQuestion);
+      document.getElementById('confirm-delete-btn').addEventListener('click', deleteQuestion);
+      document.getElementById('question-type').addEventListener('change', () => {
+        updateFormByType(document.getElementById('question-type').value);
+      });
+      document.getElementById('add-option-btn').addEventListener('click', () => addOptionField());
+      
+      // Gestionnaires pour l'import/export
+      document.getElementById('import-btn').addEventListener('click', importQuestions);
+      document.getElementById('export-json-btn').addEventListener('click', exportQuestionsJSON);
+      document.getElementById('export-csv-btn').addEventListener('click', exportQuestionsCSV);
+      
+      // Initialiser l'affichage du formulaire
+      updateFormByType('standard');
+    });
+  </script>
+</body>
+</html>

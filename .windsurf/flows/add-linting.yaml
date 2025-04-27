@@ -1,0 +1,154 @@
+name: add-linting
+description: Ajoute des outils de linting au projet
+version: 1.0.0
+author: Cascade
+
+inputs:
+  - name: tool
+    description: Outil de linting à utiliser
+    type: string
+    required: true
+  - name: rules
+    description: Règles de linting à appliquer
+    type: string
+    required: false
+    default: "standard"
+
+steps:
+  - name: install_eslint
+    description: Installer ESLint et les dépendances
+    run: |
+      npm install --save-dev eslint eslint-config-standard eslint-plugin-import eslint-plugin-node eslint-plugin-promise
+
+  - name: create_eslint_config
+    description: Créer le fichier de configuration ESLint
+    write_file:
+      path: .eslintrc.js
+      content: |
+        module.exports = {
+          env: {
+            browser: true,
+            commonjs: true,
+            es2021: true,
+            node: true,
+            jest: true
+          },
+          extends: [
+            'standard'
+          ],
+          parserOptions: {
+            ecmaVersion: 12
+          },
+          rules: {
+            // Règles personnalisées
+            'semi': ['error', 'always'],
+            'quotes': ['error', 'single'],
+            'no-unused-vars': 'warn',
+            'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+            'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off'
+          },
+          ignorePatterns: [
+            'node_modules/',
+            'public/js/html5-qrcode.min.js'
+          ]
+        };
+
+  - name: create_eslint_ignore
+    description: Créer le fichier .eslintignore
+    write_file:
+      path: .eslintignore
+      content: |
+        node_modules/
+        public/js/html5-qrcode.min.js
+        coverage/
+        dist/
+        build/
+
+  - name: create_windsurf_lint_config
+    description: Créer la configuration de linting pour Windsurf
+    write_file:
+      path: .windsurf/lint-config.json
+      content: |
+        {
+          "tool": "{{ inputs.tool }}",
+          "rules": "{{ inputs.rules }}",
+          "include": [
+            "public/js/**/*.js",
+            "server.js",
+            "scripts/**/*.js",
+            "google-apps-script/**/*.js"
+          ],
+          "exclude": [
+            "public/js/html5-qrcode.min.js",
+            "node_modules/**/*"
+          ],
+          "options": {
+            "fix": true,
+            "cache": true
+          }
+        }
+
+  - name: update_package_json
+    description: Ajouter les scripts de linting au package.json
+    run: |
+      # Ajouter les scripts de linting au package.json
+      sed -i '' 's/"scripts": {/"scripts": {\n    "lint": "eslint --fix .",\n    "lint:check": "eslint .",\n    "windsurf:lint": "{{ inputs.tool }} lint --rules \\"{{ inputs.rules }}\\"",/g' package.json
+
+  - name: create_prettier_config
+    description: Créer le fichier de configuration Prettier
+    write_file:
+      path: .prettierrc
+      content: |
+        {
+          "semi": true,
+          "singleQuote": true,
+          "tabWidth": 2,
+          "trailingComma": "es5",
+          "printWidth": 100,
+          "bracketSpacing": true,
+          "arrowParens": "avoid"
+        }
+
+  - name: create_editorconfig
+    description: Créer le fichier EditorConfig
+    write_file:
+      path: .editorconfig
+      content: |
+        root = true
+
+        [*]
+        charset = utf-8
+        end_of_line = lf
+        indent_size = 2
+        indent_style = space
+        insert_final_newline = true
+        trim_trailing_whitespace = true
+
+        [*.md]
+        trim_trailing_whitespace = false
+
+  - name: update_readme
+    description: Mettre à jour le README avec les informations de linting
+    append_file:
+      path: README.md
+      content: |
+        
+        ## Linting
+        
+        Le projet utilise ESLint pour maintenir un code de qualité. Pour exécuter le linting:
+        
+        ```bash
+        # Vérifier le code sans corriger les erreurs
+        npm run lint:check
+        
+        # Vérifier et corriger automatiquement les erreurs
+        npm run lint
+        
+        # Utiliser l'outil de linting Windsurf
+        npm run windsurf:lint
+        ```
+        
+        Le linting est configuré avec les règles suivantes:
+        - Standard JavaScript
+        - Documentation obligatoire (@docs)
+        - Règles spécifiques à Cascade

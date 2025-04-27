@@ -1,0 +1,104 @@
+{
+  "questions": [
+    {
+      "id": "Q1",
+      "title": "Ingrédients d'un roux",
+      "description": "De quels ingrédients avez-vous besoin pour créer un roux :",
+      "type": "standard",
+      "points": 1,
+      "order": 1,
+      "options": [
+        "Crème fraiche et oeufs",
+        "Beurre et farine",
+        "Sucre de canne et carotte",
+        "Poisson du jour et huile d’olive"
+      ],
+      "correctAnswer": "Beurre et farine"
+    },
+    {
+      "id": "Q2",
+      "title": "Programme phare du Cefor",
+      "description": "Quel est l'un des programmes phares proposé par le Cefor ?",
+      "type": "standard",
+      "points": 1,
+      "order": 2,
+      "options": [
+        "Formation en gestion d'entreprise",
+        "Formation en métier de bouche",
+        "Formation en soins infirmiers",
+        "Formation en arts plastiques"
+      ],
+      "correctAnswer": "Formation en métier de bouche"
+    },
+    {
+      "id": "Q3",
+      "title": "Récupérer un caramel tranché",
+      "description": "Comment récupérer un caramel qui tranche et dont on voit le gras qui en ressort",
+      "type": "standard",
+      "points": 1,
+      "order": 3,
+      "options": [
+        "Le refroidir le plus rapidement possible",
+        "Ajouter du sel de mer",
+        "Prier les dieux de la gourmandise",
+        "Ajouter du liquide comme de la crème, de l’eau...."
+      ],
+      "correctAnswer": "Ajouter du liquide comme de la crème, de l’eau...."
+    },
+    {
+      "id": "Q4",
+      "title": "Méthode pédagogique du Cefor",
+      "description": "Quelle est la principale méthode pédagogique utilisée par le Cefor ?",
+      "type": "standard",
+      "points": 1,
+      "order": 4,
+      "options": [
+        "Apprentissage par pratique professionnelle dans ses locaux, laboratoires, ateliers.",
+        "Apprentissage exclusivement en ligne",
+        "Cours magistraux",
+        "Formation uniquement en entreprise"
+      ],
+      "correctAnswer": "Apprentissage par pratique professionnelle dans ses locaux, laboratoires, ateliers."
+    },
+    {
+      "id": "Q5",
+      "title": "Reconversion professionnelle Cefor",
+      "description": "Le Cefor à Namur offre-t-il des programmes de reconversion professionnelle pour adultes ?",
+      "type": "standard",
+      "points": 1,
+      "order": 5,
+      "options": [
+        "Oui, plusieurs formations sont proposées aux adultes en reconversion",
+        "Non, le Cefor est uniquement destiné aux jeunes diplômés",
+        "Oui, mais uniquement pour des formations en informatique",
+        "Non, ce type de programme n'existe pas"
+      ],
+      "correctAnswer": "Oui, plusieurs formations sont proposées aux adultes en reconversion"
+    },
+    {
+      "id": "Q6",
+      "title": "Coteau Vignoble Ruffus",
+      "description": "Sur quel type de coteau trouverez-vous le vignoble du Ruffus ?",
+      "type": "standard",
+      "points": 1,
+      "order": 6,
+      "options": [
+        "Sur un coteau très riche en calcaire et exposé plein sud",
+        "Sur un coteau boiseux",
+        "Sur un coteau pauvre en calcaire et exposé nord sud",
+        "Sur un coteau riche en minaret de fer"
+      ],
+      "correctAnswer": "Sur un coteau très riche en calcaire et exposé plein sud"
+    },
+    {
+      "id": "Q7",
+      "title": "Question subsidiaire",
+      "description": "Combien de personnes vont participer au jeu ?",
+      "type": "text",
+      "points": 0,
+      "order": 7,
+      "options": [],
+      "correctAnswer": ""
+    }
+  ]
+}

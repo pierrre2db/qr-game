@@ -1,0 +1,190 @@
+name: apply-branding
+description: Injection de logos et couleurs via config file
+version: 1.0.0
+author: Cascade
+
+inputs:
+  - name: logo
+    description: Chemin vers le fichier logo
+    type: string
+    required: true
+  - name: primaryColor
+    description: Couleur primaire (format hexadécimal)
+    type: string
+    required: true
+  - name: secondaryColor
+    description: Couleur secondaire (format hexadécimal)
+    type: string
+    required: false
+    default: "#34a853"
+  - name: backgroundColor
+    description: Couleur de fond (format hexadécimal)
+    type: string
+    required: false
+    default: "#f5f5f5"
+  - name: textColor
+    description: Couleur du texte (format hexadécimal)
+    type: string
+    required: false
+    default: "#333333"
+
+steps:
+  - name: create_branding_config
+    description: Créer le fichier de configuration de branding
+    write_file:
+      path: config/branding.json
+      content: |
+        {
+          "logo": "{{ inputs.logo }}",
+          "colors": {
+            "primary": "{{ inputs.primaryColor }}",
+            "secondary": "{{ inputs.secondaryColor }}",
+            "background": "{{ inputs.backgroundColor }}",
+            "text": "{{ inputs.textColor }}"
+          },
+          "lastUpdated": "{{ date.now }}"
+        }
+
+  - name: ensure_assets_directory
+    description: S'assurer que le répertoire assets existe
+    run: |
+      mkdir -p public/assets
+
+  - name: copy_logo
+    description: Copier le logo dans le répertoire assets
+    run: |
+      if [ -f "{{ inputs.logo }}" ]; then
+        cp "{{ inputs.logo }}" public/assets/logo.svg
+        echo "Logo copié avec succès"
+      else
+        echo "ERREUR: Le fichier logo n'existe pas à l'emplacement spécifié"
+        exit 1
+      fi
+
+  - name: update_css_variables
+    description: Mettre à jour les variables CSS avec les couleurs spécifiées
+    run: |
+      sed -i '' 's/--primary-color: #[0-9a-fA-F]\{6\};/--primary-color: {{ inputs.primaryColor }};/g' public/css/styles.css
+      sed -i '' 's/--secondary-color: #[0-9a-fA-F]\{6\};/--secondary-color: {{ inputs.secondaryColor }};/g' public/css/styles.css
+      sed -i '' 's/--background-color: #[0-9a-fA-F]\{6\};/--background-color: {{ inputs.backgroundColor }};/g' public/css/styles.css
+      sed -i '' 's/--text-color: #[0-9a-fA-F]\{6\};/--text-color: {{ inputs.textColor }};/g' public/css/styles.css
+      echo "Variables CSS mises à jour"
+
+  - name: update_manifest_colors
+    description: Mettre à jour les couleurs dans le manifest.json
+    run: |
+      sed -i '' 's/"background_color": "#[0-9a-fA-F]\{6\}"/"background_color": "{{ inputs.primaryColor }}"/g' public/manifest.json
+      sed -i '' 's/"theme_color": "#[0-9a-fA-F]\{6\}"/"theme_color": "{{ inputs.primaryColor }}"/g' public/manifest.json
+      echo "Couleurs du manifest mises à jour"
+
+  - name: update_html_logo
+    description: Mettre à jour le logo dans le HTML
+    run: |
+      # Ajouter le logo dans le header
+      sed -i '' 's/<h1>QR Game<\/h1>/<h1><img src="\/assets\/logo.svg" alt="QR Game Logo" class="header-logo"> QR Game<\/h1>/g' public/index.html
+      echo "Logo ajouté au HTML"
+
+  - name: add_logo_styles
+    description: Ajouter les styles CSS pour le logo
+    append_file:
+      path: public/css/styles.css
+      content: |
+        
+        /* Styles pour le logo */
+        .header-logo {
+          height: 2rem;
+          margin-right: 0.5rem;
+          vertical-align: middle;
+        }
+        
+        @media (max-width: 600px) {
+          .header-logo {
+            height: 1.5rem;
+          }
+        }
+
+  - name: create_config_directory
+    description: Créer le répertoire de configuration s'il n'existe pas
+    run: |
+      mkdir -p config
+
+  - name: create_branding_js
+    description: Créer un module JS pour charger la configuration de branding
+    write_file:
+      path: public/js/branding.js
+      content: |
+        /**
+         * Module de gestion du branding
+         */
+        
+        class BrandingManager {
+          constructor() {
+            this.config = {
+              logo: '/assets/logo.svg',
+              colors: {
+                primary: '{{ inputs.primaryColor }}',
+                secondary: '{{ inputs.secondaryColor }}',
+                background: '{{ inputs.backgroundColor }}',
+                text: '{{ inputs.textColor }}'
+              }
+            };
+          }
+          
+          /**
+           * Applique les couleurs de branding dynamiquement
+           */
+          applyBranding() {
+            // Appliquer les couleurs aux éléments dynamiques
+            document.documentElement.style.setProperty('--primary-color', this.config.colors.primary);
+            document.documentElement.style.setProperty('--secondary-color', this.config.colors.secondary);
+            document.documentElement.style.setProperty('--background-color', this.config.colors.background);
+            document.documentElement.style.setProperty('--text-color', this.config.colors.text);
+            
+            // Mettre à jour les méta tags
+            const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+            if (themeColorMeta) {
+              themeColorMeta.setAttribute('content', this.config.colors.primary);
+            }
+            
+            console.log('Branding appliqué avec succès');
+          }
+        }
+        
+        // Créer et exporter l'instance
+        const brandingManager = new BrandingManager();
+        
+        // Appliquer le branding au chargement
+        document.addEventListener('DOMContentLoaded', () => {
+          brandingManager.applyBranding();
+        });
+        
+        // Exporter l'instance pour une utilisation dans d'autres modules
+        window.brandingManager = brandingManager;
+
+  - name: update_html_branding_script
+    description: Ajouter le script de branding au HTML
+    run: |
+      # Ajouter le script de branding avant les autres scripts
+      sed -i '' 's/<script src="js\/html5-qrcode.min.js"><\/script>/<script src="js\/branding.js"><\/script>\n  <script src="js\/html5-qrcode.min.js"><\/script>/g' public/index.html
+      echo "Script de branding ajouté au HTML"
+
+  - name: update_readme
+    description: Mettre à jour le README avec les informations de branding
+    append_file:
+      path: README.md
+      content: |
+        
+        ## Personnalisation du branding
+        
+        L'application supporte la personnalisation des couleurs et du logo via le flow Windsurf `apply-branding`:
+        
+        ```
+        windsurf flow run apply-branding --logo assets/logo.svg --primaryColor "#123456"
+        ```
+        
+        Options disponibles:
+        - `--logo` : Chemin vers le fichier logo (SVG recommandé)
+        - `--primaryColor` : Couleur principale de l'application
+        - `--secondaryColor` : Couleur secondaire (optionnel)
+        - `--backgroundColor` : Couleur de fond (optionnel)
+        - `--textColor` : Couleur du texte (optionnel)

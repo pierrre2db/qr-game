@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4285f4">
+  <title>QR Game - Administration</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <header>
+    <h1>QR Game - Administration</h1>
+    <nav>
+      <button id="logoutButton" class="secondary-button">Déconnexion</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="admin-container">
+      <div class="admin-sidebar">
+        <ul class="admin-menu">
+          <li class="admin-menu-item active" data-target="dashboard">Tableau de bord</li>
+          <li class="admin-menu-item" data-target="questions">Questions</li>
+          <li class="admin-menu-item" data-target="statistics">Statistiques</li>
+          <li class="admin-menu-item" data-target="export">Exportation</li>
+          <li class="admin-menu-item" data-target="settings">Paramètres</li>
+        </ul>
+      </div>
+      
+      <div class="admin-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="admin-section active">
+          <h2>Tableau de bord</h2>
+          
+          <div class="dashboard-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="total-players">0</div>
+              <div class="stat-label">Joueurs</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="total-games">0</div>
+              <div class="stat-label">Parties</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="completion-rate">0%</div>
+              <div class="stat-label">Taux de complétion</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="avg-completion-time">00:00</div>
+              <div class="stat-label">Temps moyen</div>
+            </div>
+          </div>
+          
+          <div class="dashboard-charts">
+            <div class="chart-container">
+              <h3>Activité récente</h3>
+              <canvas id="activity-chart"></canvas>
+            </div>
+            <div class="chart-container">
+              <h3>Progression par défi</h3>
+              <canvas id="challenge-chart"></canvas>
+            </div>
+          </div>
+          
+          <div class="recent-activity">
+            <h3>Activité récente</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Joueur</th>
+                  <th>Action</th>
+                  <th>Défi</th>
+                </tr>
+              </thead>
+              <tbody id="recent-activity-list">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+        
+        <!-- Questions Section -->
+        <section id="questions" class="admin-section">
+          <h2>Gestion des questions</h2>
+          
+          <div class="action-bar">
+            <button id="add-question" class="primary-button">Ajouter une question</button>
+            <button id="import-questions" class="secondary-button">Importer</button>
+          </div>
+          
+          <div class="questions-list">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Titre</th>
+                  <th>Description</th>
+                  <th>Ordre</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="questions-list-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="question-editor" class="modal">
+            <div class="modal-content">
+              <span class="close">&times;</span>
+              <h3>Éditer la question</h3>
+              <form id="question-form">
+                <div class="form-group">
+                  <label for="question-id">ID</label>
+                  <input type="text" id="question-id" required>
+                </div>
+                <div class="form-group">
+                  <label for="question-title">Titre</label>
+                  <input type="text" id="question-title" required>
+                </div>
+                <div class="form-group">
+                  <label for="question-description">Description</label>
+                  <textarea id="question-description" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="question-order">Ordre</label>
+                  <input type="number" id="question-order" min="0" required>
+                </div>
+                <div class="form-group">
+                  <label for="question-points">Points</label>
+                  <input type="number" id="question-points" min="0" value="10">
+                </div>
+                <div class="form-group">
+                  <label for="question-hint">Indice (optionnel)</label>
+                  <textarea id="question-hint" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="primary-button">Enregistrer</button>
+                  <button type="button" class="secondary-button cancel-button">Annuler</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Statistics Section -->
+        <section id="statistics" class="admin-section">
+          <h2>Statistiques</h2>
+          
+          <div class="stats-filters">
+            <div class="form-group">
+              <label for="stats-period">Période</label>
+              <select id="stats-period">
+                <option value="7days">7 derniers jours</option>
+                <option value="30days">30 derniers jours</option>
+                <option value="90days">90 derniers jours</option>
+                <option value="all">Tout</option>
+              </select>
+            </div>
+            <button id="refresh-stats" class="secondary-button">Actualiser</button>
+          </div>
+          
+          <div class="stats-charts">
+            <div class="chart-container large">
+              <h3>Joueurs par jour</h3>
+              <canvas id="players-chart"></canvas>
+            </div>
+            <div class="chart-container large">
+              <h3>Temps moyen par défi</h3>
+              <canvas id="time-per-challenge-chart"></canvas>
+            </div>
+            <div class="chart-container">
+              <h3>Taux de complétion</h3>
+              <canvas id="completion-chart"></canvas>
+            </div>
+            <div class="chart-container">
+              <h3>Répartition des appareils</h3>
+              <canvas id="devices-chart"></canvas>
+            </div>
+          </div>
+          
+          <div class="stats-tables">
+            <h3>Top joueurs</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Joueur</th>
+                  <th>Parties complétées</th>
+                  <th>Temps moyen</th>
+                  <th>Dernière activité</th>
+                </tr>
+              </thead>
+              <tbody id="top-players-list">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+        
+        <!-- Export Section -->
+        <section id="export" class="admin-section">
+          <h2>Exportation des données</h2>
+          
+          <div class="export-options">
+            <div class="export-card">
+              <h3>Exporter les données des joueurs</h3>
+              <p>Téléchargez toutes les données des joueurs au format CSV ou JSON.</p>
+              <div class="export-actions">
+                <button class="primary-button" data-export="players" data-format="csv">CSV</button>
+                <button class="secondary-button" data-export="players" data-format="json">JSON</button>
+              </div>
+            </div>
+            
+            <div class="export-card">
+              <h3>Exporter les questions</h3>
+              <p>Téléchargez toutes les questions et défis au format CSV ou JSON.</p>
+              <div class="export-actions">
+                <button class="primary-button" data-export="questions" data-format="csv">CSV</button>
+                <button class="secondary-button" data-export="questions" data-format="json">JSON</button>
+              </div>
+            </div>
+            
+            <div class="export-card">
+              <h3>Exporter les statistiques</h3>
+              <p>Téléchargez les statistiques d'utilisation au format CSV ou JSON.</p>
+              <div class="export-actions">
+                <button class="primary-button" data-export="stats" data-format="csv">CSV</button>
+                <button class="secondary-button" data-export="stats" data-format="json">JSON</button>
+              </div>
+            </div>
+            
+            <div class="export-card">
+              <h3>Générer des codes QR</h3>
+              <p>Générez et téléchargez tous les codes QR pour les défis.</p>
+              <div class="export-actions">
+                <button class="primary-button" data-export="qrcodes" data-format="png">PNG</button>
+                <button class="secondary-button" data-export="qrcodes" data-format="svg">SVG</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="scheduled-exports">
+            <h3>Exportations programmées</h3>
+            <p>Configurez des exportations automatiques par email.</p>
+            
+            <form id="scheduled-export-form">
+              <div class="form-group">
+                <label for="export-email">Email</label>
+                <input type="email" id="export-email" required>
+              </div>
+              <div class="form-group">
+                <label for="export-frequency">Fréquence</label>
+                <select id="export-frequency">
+                  <option value="daily">Quotidienne</option>
+                  <option value="weekly">Hebdomadaire</option>
+                  <option value="monthly">Mensuelle</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="export-type">Type de données</label>
+                <select id="export-type">
+                  <option value="all">Toutes les données</option>
+                  <option value="players">Joueurs uniquement</option>
+                  <option value="stats">Statistiques uniquement</option>
+                </select>
+              </div>
+              <button type="submit" class="primary-button">Enregistrer</button>
+            </form>
+          </div>
+        </section>
+        
+        <!-- Settings Section -->
+        <section id="settings" class="admin-section">
+          <h2>Paramètres</h2>
+          
+          <form id="settings-form">
+            <div class="settings-group">
+              <h3>Paramètres généraux</h3>
+              
+              <div class="form-group">
+                <label for="game-title">Titre du jeu</label>
+                <input type="text" id="game-title" value="QR Game">
+              </div>
+              
+              <div class="form-group">
+                <label for="base-url">URL de base</label>
+                <input type="url" id="base-url" value="https://qr-game.example.com">
+              </div>
+              
+              <div class="form-check">
+                <input type="checkbox" id="enable-analytics" checked>
+                <label for="enable-analytics">Activer les analyses</label>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h3>Paramètres de jeu</h3>
+              
+              <div class="form-group">
+                <label for="min-players">Nombre minimum de joueurs</label>
+                <input type="number" id="min-players" min="1" value="1">
+              </div>
+              
+              <div class="form-group">
+                <label for="time-limit">Limite de temps (minutes, 0 = illimité)</label>
+                <input type="number" id="time-limit" min="0" value="0">
+              </div>
+              
+              <div class="form-check">
+                <input type="checkbox" id="enable-hints" checked>
+                <label for="enable-hints">Activer les indices</label>
+              </div>
+              
+              <div class="form-check">
+                <input type="checkbox" id="require-sequential" checked>
+                <label for="require-sequential">Exiger une progression séquentielle</label>
+              </div>
+            </div>
+            
+            <div class="settings-group">
+              <h3>Intégration Google Forms</h3>
+              
+              <div class="form-group">
+                <label for="forms-script-url">URL du script Apps Script</label>
+                <input type="url" id="forms-script-url" placeholder="https://script.google.com/macros/s/...">
+              </div>
+              
+              <div class="form-group">
+                <label for="google-sheet-url">URL du Google Sheet</label>
+                <input type="url" id="google-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/...">
+                <small class="form-help">URL de la feuille de calcul où les données seront stockées</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="form-id">ID du formulaire (optionnel)</label>
+                <input type="text" id="form-id" placeholder="1FAIpQLSe...">
+                <small class="form-help">Laissez vide pour créer automatiquement un nouveau formulaire</small>
+              </div>
+              
+              <div class="form-group">
+                <label for="sheet-id">ID de la feuille (optionnel)</label>
+                <input type="text" id="sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2...">
+                <small class="form-help">ID de la feuille de calcul spécifique dans le Google Sheet</small>
+              </div>
+              
+              <div class="form-check">
+                <input type="checkbox" id="enable-forms-integration">
+                <label for="enable-forms-integration">Activer l'intégration Google Forms</label>
+              </div>
+              
+              <div class="form-check">
+                <input type="checkbox" id="offline-support" checked>
+                <label for="offline-support">Activer le support hors ligne</label>
+                <small class="form-help">Permet de stocker les réponses localement quand l'utilisateur est hors ligne</small>
+              </div>
+              
+              <div class="form-actions" style="margin-top: 15px;">
+                <button type="button" id="test-forms-connection" class="secondary-button">Tester la connexion</button>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="primary-button">Enregistrer les paramètres</button>
+              <button type="button" id="reset-settings" class="secondary-button">Réinitialiser</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 QR Game - Administration</p>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h3>Connexion administrateur</h3>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">Nom d'utilisateur</label>
+          <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary-button">Se connecter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Chart.js for statistics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  
+  <!-- Admin scripts -->
+  <script src="js/admin/auth.js"></script>
+  <script src="js/admin/dashboard.js"></script>
+  <script src="js/admin/questions.js"></script>
+  <script src="js/admin/statistics.js"></script>
+  <script src="js/admin/export.js"></script>
+  <script src="js/admin/settings.js"></script>
+  <script src="js/qr-generator.js"></script>
+  <script src="js/admin/main.js"></script>
+</body>
+</html>

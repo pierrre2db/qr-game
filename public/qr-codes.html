@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Générateur de QR Codes</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 20px;
+      padding-bottom: 40px;
+    }
+    .qr-card {
+      margin-bottom: 20px;
+    }
+    .qr-container {
+      text-align: center;
+      padding: 15px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .print-section {
+      margin-bottom: 30px;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+      .qr-card {
+        border: 1px solid #ddd;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row mb-4 no-print">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <h1>QR Game - Générateur de QR Codes</h1>
+          <div>
+            <a href="index.html" class="btn btn-outline-primary me-2">
+              <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="json-editor.html" class="btn btn-outline-secondary">
+              <i class="fas fa-edit"></i> Éditeur JSON
+            </a>
+          </div>
+        </div>
+        <hr>
+      </div>
+    </div>
+    
+    <div class="row mb-4 no-print">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Options de génération</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="qr-size" class="form-label">Taille des QR codes (px)</label>
+              <input type="number" class="form-control" id="qr-size" value="300" min="100" max="800">
+            </div>
+            <div class="mb-3">
+              <label for="qr-color" class="form-label">Couleur</label>
+              <input type="color" class="form-control form-control-color" id="qr-color" value="#4285F4">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Format</label>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="qr-format" id="format-png" value="png" checked>
+                <label class="form-check-label" for="format-png">PNG</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="qr-format" id="format-svg" value="svg">
+                <label class="form-check-label" for="format-svg">SVG</label>
+              </div>
+            </div>
+            <div class="d-grid gap-2">
+              <button id="generate-all-btn" class="btn btn-primary">
+                <i class="fas fa-qrcode me-2"></i> Générer tous les QR codes
+              </button>
+              <button id="print-all-btn" class="btn btn-secondary">
+                <i class="fas fa-print me-2"></i> Imprimer tous les QR codes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informations</h5>
+          </div>
+          <div class="card-body">
+            <p>Cette page vous permet de générer des QR codes pour toutes les questions de votre jeu.</p>
+            <p>Chaque QR code contient un lien unique qui, lorsqu'il est scanné, dirige le joueur vers la question correspondante.</p>
+            <p>Vous pouvez personnaliser la taille et la couleur des QR codes, puis les télécharger ou les imprimer.</p>
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i> Les QR codes sont générés à partir des questions stockées dans le fichier <code>questions.json</code>.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="print-section">
+      <h2 class="mb-4 no-print">Aperçu des QR codes</h2>
+      <div id="qr-container" class="row">
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+          <p class="mt-2">Chargement des questions...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container -->
+  <div class="toast-container"></div>
+  
+  <!-- QR Card Template -->
+  <template id="qr-card-template">
+    <div class="col-md-6 col-lg-4 qr-card">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0 question-id"></h5>
+          <div class="no-print">
+            <button class="btn btn-sm btn-outline-primary download-btn">
+              <i class="fas fa-download"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="qr-container">
+            <div class="qr-code"></div>
+          </div>
+          <h6 class="question-title text-center mt-2"></h6>
+        </div>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- QR Code Generator -->
+  <script src="js/qr-generator.js"></script>
+  
+  <script>
+    // Éléments DOM
+    const qrContainer = document.getElementById('qr-container');
+    const generateAllBtn = document.getElementById('generate-all-btn');
+    const printAllBtn = document.getElementById('print-all-btn');
+    const qrSizeInput = document.getElementById('qr-size');
+    const qrColorInput = document.getElementById('qr-color');
+    const formatPng = document.getElementById('format-png');
+    
+    // Variables globales
+    let questions = [];
+    // Utiliser l'URL actuelle comme base pour que les QR codes fonctionnent partout
+    let baseUrl = `${window.location.origin}/game.html?q=`;
+    
+    // Charger les questions au démarrage
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Vérifier que le générateur de QR codes est disponible
+        if (typeof qrCodeGenerator === 'undefined' || !qrCodeGenerator) {
+          showToast('Erreur: Module de génération QR non chargé', 'danger');
+          console.error('Module QR Generator non trouvé. Vérifiez que le fichier qr-generator.js est correctement chargé.');
+          return;
+        }
+        
+        // Initialiser le générateur de QR codes
+        await qrCodeGenerator.initialize().catch(err => {
+          console.error('Erreur lors de l\'initialisation du générateur QR:', err);
+          showToast('Erreur d\'initialisation du générateur QR', 'danger');
+        });
+        
+        await loadQuestions();
+        
+        // Gestionnaires d'événements
+        generateAllBtn.addEventListener('click', generateAllQRCodes);
+        printAllBtn.addEventListener('click', printAllQRCodes);
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation:', error);
+        showToast('Erreur lors de l\'initialisation. Vérifiez la console pour plus de détails.', 'danger');
+      }
+    });
+    
+    // Charger les questions depuis l'API
+    async function loadQuestions() {
+      try {
+        const response = await fetch('/api/questions');
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        questions = data.questions || [];
+        
+        // Générer les QR codes
+        generateAllQRCodes();
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        showToast('Erreur lors du chargement des questions. Veuillez réessayer.', 'danger');
+      }
+    }
+    
+    // Générer tous les QR codes
+    async function generateAllQRCodes() {
+      if (!questions.length) {
+        qrContainer.innerHTML = `
+          <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Aucune question disponible. Utilisez l'éditeur JSON pour ajouter des questions.
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      // Afficher un message de chargement
+      qrContainer.innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+          <p class="mt-2">Génération des QR codes...</p>
+        </div>
+      `;
+      
+      // Récupérer les options
+      const size = parseInt(qrSizeInput.value) || 300;
+      const color = qrColorInput.value || '#4285F4';
+      const format = formatPng.checked ? 'png' : 'svg';
+      
+      // Vider le conteneur
+      qrContainer.innerHTML = '';
+      
+      // Générer un QR code pour chaque question
+      for (const question of questions) {
+        await generateQRCode(question, {
+          size,
+          color: {
+            dark: color,
+            light: '#FFFFFF'
+          },
+          format
+        });
+      }
+      
+      showToast(`${questions.length} QR codes générés avec succès`, 'success');
+    }
+    
+    // Générer un QR code pour une question
+    async function generateQRCode(question, options) {
+      const template = document.getElementById('qr-card-template');
+      const card = template.content.cloneNode(true);
+      
+      // Définir les données de la question
+      card.querySelector('.question-id').textContent = question.id;
+      card.querySelector('.question-title').textContent = question.title;
+      
+      // Conteneur pour le QR code
+      const qrCodeContainer = card.querySelector('.qr-code');
+      
+      try {
+        // URL pour le QR code
+        const qrUrl = `${baseUrl}${question.id}`;
+        console.log(`Génération du QR code pour ${question.id} avec l'URL: ${qrUrl}`);
+        
+        // Vérifier que le générateur est disponible
+        if (!qrCodeGenerator || typeof qrCodeGenerator.generateQRCodeDataURL !== 'function') {
+          throw new Error('Le générateur de QR code n\'est pas correctement initialisé');
+        }
+        
+        // Générer le QR code
+        const qrDataUrl = await qrCodeGenerator.generateQRCodeDataURL(qrUrl, options);
+        
+        if (!qrDataUrl) {
+          throw new Error('QR code généré vide ou invalide');
+        }
+        
+        console.log(`QR code généré avec succès pour ${question.id}`);
+        
+        // Créer l'image
+        const img = document.createElement('img');
+        img.src = qrDataUrl;
+        img.alt = `QR Code pour ${question.title}`;
+        img.style.maxWidth = '100%';
+        
+        // Ajouter l'image au conteneur
+        qrCodeContainer.appendChild(img);
+        
+        // Configurer le bouton de téléchargement
+        const downloadBtn = card.querySelector('.download-btn');
+        downloadBtn.addEventListener('click', () => {
+          downloadQRCode(qrDataUrl, `qr_${question.id}.${options.format}`);
+        });
+        
+      } catch (error) {
+        console.error(`Erreur lors de la génération du QR code pour ${question.id}:`, error);
+        qrCodeContainer.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Erreur de génération: ${error.message || 'Erreur inconnue'}
+          </div>
+        `;
+      }
+      
+      // Ajouter la carte au conteneur
+      qrContainer.appendChild(card);
+    }
+    
+    // Télécharger un QR code
+    function downloadQRCode(dataUrl, filename) {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    // Imprimer tous les QR codes
+    function printAllQRCodes() {
+      window.print();
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

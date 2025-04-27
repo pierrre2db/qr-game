@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Test des Questions</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 20px;
+      padding-bottom: 40px;
+    }
+    .question-card {
+      margin-bottom: 20px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .number-input {
+      max-width: 200px;
+    }
+    .comment-textarea {
+      min-height: 150px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <h1>QR Game - Test des Questions</h1>
+          <div>
+            <a href="index.html" class="btn btn-outline-primary me-2">
+              <i class="fas fa-home"></i> Accueil
+            </a>
+            <a href="json-editor.html" class="btn btn-outline-secondary">
+              <i class="fas fa-edit"></i> Éditeur JSON
+            </a>
+          </div>
+        </div>
+        <hr>
+      </div>
+    </div>
+    
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Informations du joueur</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="player-id" class="form-label">ID du joueur</label>
+              <input type="text" class="form-control" id="player-id" value="JOUEUR123">
+            </div>
+            <div class="mb-3">
+              <label for="player-name" class="form-label">Nom du joueur</label>
+              <input type="text" class="form-control" id="player-name" value="Joueur Test">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Options de test</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show-all-questions" checked>
+                <label class="form-check-label" for="show-all-questions">Afficher toutes les questions</label>
+              </div>
+            </div>
+            <div class="d-grid gap-2">
+              <button id="load-questions" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Charger les questions
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="questions-container">
+      <!-- Les questions seront chargées ici dynamiquement -->
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+        <p class="mt-2">Chargement des questions...</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container -->
+  <div class="toast-container"></div>
+  
+  <!-- Templates -->
+  <template id="standard-question-template">
+    <div class="card question-card" data-question-id="">
+      <div class="card-header">
+        <h5 class="card-title mb-0"></h5>
+      </div>
+      <div class="card-body">
+        <p class="question-description"></p>
+        <div class="options-container">
+          <!-- Les options seront ajoutées ici -->
+        </div>
+        <div class="mt-3 d-grid">
+          <button class="btn btn-primary submit-answer">Soumettre la réponse</button>
+        </div>
+      </div>
+      <div class="card-footer text-muted">
+        <small>Type: QCM | Points: <span class="question-points"></span></small>
+      </div>
+    </div>
+  </template>
+  
+  <template id="text-question-template">
+    <div class="card question-card" data-question-id="">
+      <div class="card-header">
+        <h5 class="card-title mb-0"></h5>
+      </div>
+      <div class="card-body">
+        <p class="question-description"></p>
+        <div class="mb-3">
+          <textarea class="form-control text-response" rows="3"></textarea>
+        </div>
+        <div class="mt-3 d-grid">
+          <button class="btn btn-primary submit-answer">Soumettre la réponse</button>
+        </div>
+      </div>
+      <div class="card-footer text-muted">
+        <small>Type: Texte | Points: <span class="question-points"></span></small>
+      </div>
+    </div>
+  </template>
+  
+  <template id="number-question-template">
+    <div class="card question-card" data-question-id="">
+      <div class="card-header">
+        <h5 class="card-title mb-0"></h5>
+      </div>
+      <div class="card-body">
+        <p class="question-description"></p>
+        <div class="mb-3">
+          <input type="number" class="form-control number-input number-response" min="0" step="1">
+          <div class="form-text">Entrez un nombre entre <span class="min-value">0</span> et <span class="max-value">1000</span></div>
+        </div>
+        <div class="mt-3 d-grid">
+          <button class="btn btn-primary submit-answer">Soumettre la réponse</button>
+        </div>
+      </div>
+      <div class="card-footer text-muted">
+        <small>Type: Numérique | Points: <span class="question-points"></span></small>
+      </div>
+    </div>
+  </template>
+  
+  <template id="comment-question-template">
+    <div class="card question-card" data-question-id="">
+      <div class="card-header">
+        <h5 class="card-title mb-0"></h5>
+      </div>
+      <div class="card-body">
+        <p class="question-description"></p>
+        <div class="mb-3">
+          <textarea class="form-control comment-textarea comment-response" rows="5" placeholder="Partagez votre expérience..."></textarea>
+        </div>
+        <div class="mt-3 d-grid">
+          <button class="btn btn-primary submit-answer">Envoyer le commentaire</button>
+        </div>
+      </div>
+      <div class="card-footer text-muted">
+        <small>Type: Commentaire</small>
+        <span class="badge bg-info ms-2 end-game-badge" style="display: none;">Fin du jeu</span>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Éléments DOM
+    const questionsContainer = document.getElementById('questions-container');
+    const loadQuestionsButton = document.getElementById('load-questions');
+    const playerIdInput = document.getElementById('player-id');
+    const playerNameInput = document.getElementById('player-name');
+    const showAllQuestionsCheckbox = document.getElementById('show-all-questions');
+    
+    // Templates
+    const standardQuestionTemplate = document.getElementById('standard-question-template');
+    const textQuestionTemplate = document.getElementById('text-question-template');
+    const numberQuestionTemplate = document.getElementById('number-question-template');
+    const commentQuestionTemplate = document.getElementById('comment-question-template');
+    
+    // Charger les questions au démarrage
+    document.addEventListener('DOMContentLoaded', () => {
+      loadQuestions();
+    });
+    
+    // Recharger les questions sur demande
+    loadQuestionsButton.addEventListener('click', loadQuestions);
+    
+    // Fonction pour charger les questions
+    async function loadQuestions() {
+      questionsContainer.innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+          </div>
+          <p class="mt-2">Chargement des questions...</p>
+        </div>
+      `;
+      
+      try {
+        const response = await fetch('/api/questions');
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        renderQuestions(data.questions || []);
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        questionsContainer.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Erreur lors du chargement des questions: ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    // Fonction pour afficher les questions
+    function renderQuestions(questions) {
+      if (!questions.length) {
+        questionsContainer.innerHTML = `
+          <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucune question disponible. Utilisez l'éditeur JSON pour en ajouter.
+          </div>
+        `;
+        return;
+      }
+      
+      // Trier les questions par ordre
+      questions.sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order;
+        }
+        return 0;
+      });
+      
+      questionsContainer.innerHTML = '';
+      
+      questions.forEach(question => {
+        let questionElement;
+        
+        switch (question.type) {
+          case 'standard':
+            questionElement = createStandardQuestion(question);
+            break;
+          case 'text':
+            questionElement = createTextQuestion(question);
+            break;
+          case 'number':
+            questionElement = createNumberQuestion(question);
+            break;
+          case 'comment':
+            questionElement = createCommentQuestion(question);
+            break;
+          default:
+            questionElement = createStandardQuestion(question);
+        }
+        
+        questionsContainer.appendChild(questionElement);
+      });
+    }
+    
+    // Créer une question standard (QCM)
+    function createStandardQuestion(question) {
+      const template = standardQuestionTemplate.content.cloneNode(true);
+      const card = template.querySelector('.card');
+      
+      card.dataset.questionId = question.id;
+      card.querySelector('.card-title').textContent = question.title;
+      card.querySelector('.question-description').textContent = question.description;
+      card.querySelector('.question-points').textContent = question.points || 0;
+      
+      const optionsContainer = card.querySelector('.options-container');
+      
+      if (question.options && question.options.length) {
+        question.options.forEach((option, index) => {
+          const optionDiv = document.createElement('div');
+          optionDiv.className = 'form-check mb-2';
+          
+          const optionInput = document.createElement('input');
+          optionInput.className = 'form-check-input';
+          optionInput.type = 'radio';
+          optionInput.name = `question-${question.id}`;
+          optionInput.id = `question-${question.id}-option-${index}`;
+          optionInput.value = option;
+          
+          const optionLabel = document.createElement('label');
+          optionLabel.className = 'form-check-label';
+          optionLabel.htmlFor = `question-${question.id}-option-${index}`;
+          optionLabel.textContent = option;
+          
+          optionDiv.appendChild(optionInput);
+          optionDiv.appendChild(optionLabel);
+          optionsContainer.appendChild(optionDiv);
+        });
+      }
+      
+      const submitButton = card.querySelector('.submit-answer');
+      submitButton.addEventListener('click', () => {
+        const selectedOption = card.querySelector(`input[name="question-${question.id}"]:checked`);
+        
+        if (!selectedOption) {
+          showToast('Veuillez sélectionner une réponse', 'warning');
+          return;
+        }
+        
+        submitAnswer(question.id, selectedOption.value);
+      });
+      
+      return card;
+    }
+    
+    // Créer une question à réponse textuelle
+    function createTextQuestion(question) {
+      const template = textQuestionTemplate.content.cloneNode(true);
+      const card = template.querySelector('.card');
+      
+      card.dataset.questionId = question.id;
+      card.querySelector('.card-title').textContent = question.title;
+      card.querySelector('.question-description').textContent = question.description;
+      card.querySelector('.question-points').textContent = question.points || 0;
+      
+      const submitButton = card.querySelector('.submit-answer');
+      submitButton.addEventListener('click', () => {
+        const textResponse = card.querySelector('.text-response').value.trim();
+        
+        if (!textResponse) {
+          showToast('Veuillez entrer une réponse', 'warning');
+          return;
+        }
+        
+        submitAnswer(question.id, textResponse);
+      });
+      
+      return card;
+    }
+    
+    // Créer une question numérique
+    function createNumberQuestion(question) {
+      const template = numberQuestionTemplate.content.cloneNode(true);
+      const card = template.querySelector('.card');
+      
+      card.dataset.questionId = question.id;
+      card.querySelector('.card-title').textContent = question.title;
+      card.querySelector('.question-description').textContent = question.description;
+      card.querySelector('.question-points').textContent = question.points || 0;
+      
+      const numberInput = card.querySelector('.number-response');
+      const minValueSpan = card.querySelector('.min-value');
+      const maxValueSpan = card.querySelector('.max-value');
+      
+      // Définir les limites
+      const minValue = question.minValue !== undefined ? question.minValue : 0;
+      const maxValue = question.maxValue !== undefined ? question.maxValue : 1000;
+      
+      numberInput.min = minValue;
+      numberInput.max = maxValue;
+      minValueSpan.textContent = minValue;
+      maxValueSpan.textContent = maxValue;
+      
+      const submitButton = card.querySelector('.submit-answer');
+      submitButton.addEventListener('click', () => {
+        const numberResponse = numberInput.value.trim();
+        
+        if (!numberResponse) {
+          showToast('Veuillez entrer un nombre', 'warning');
+          return;
+        }
+        
+        const numValue = parseInt(numberResponse, 10);
+        if (isNaN(numValue) || numValue < minValue || numValue > maxValue) {
+          showToast(`Veuillez entrer un nombre entre ${minValue} et ${maxValue}`, 'warning');
+          return;
+        }
+        
+        submitAnswer(question.id, numberResponse);
+      });
+      
+      return card;
+    }
+    
+    // Créer un champ de commentaire
+    function createCommentQuestion(question) {
+      const template = commentQuestionTemplate.content.cloneNode(true);
+      const card = template.querySelector('.card');
+      
+      card.dataset.questionId = question.id;
+      card.querySelector('.card-title').textContent = question.title;
+      card.querySelector('.question-description').textContent = question.description;
+      
+      // Afficher le badge "Fin du jeu" si nécessaire
+      if (question.isEndGame) {
+        card.querySelector('.end-game-badge').style.display = 'inline-block';
+      }
+      
+      const submitButton = card.querySelector('.submit-answer');
+      submitButton.addEventListener('click', () => {
+        const commentResponse = card.querySelector('.comment-response').value.trim();
+        
+        if (!commentResponse) {
+          showToast('Veuillez entrer un commentaire', 'warning');
+          return;
+        }
+        
+        submitAnswer(question.id, commentResponse);
+      });
+      
+      return card;
+    }
+    
+    // Soumettre une réponse
+    async function submitAnswer(questionId, response) {
+      const playerId = playerIdInput.value.trim();
+      const playerName = playerNameInput.value.trim();
+      
+      if (!playerId) {
+        showToast('Veuillez entrer un ID de joueur', 'warning');
+        return;
+      }
+      
+      const answerData = {
+        playerId,
+        playerName,
+        questionId,
+        response,
+        timestamp: new Date().toISOString(),
+        timeSpent: Math.floor(Math.random() * 60) + 10 // Temps aléatoire pour le test
+      };
+      
+      try {
+        const response = await fetch('/api/responses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(answerData)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Afficher le résultat
+        if (result.response && result.response.isCorrect !== undefined) {
+          if (result.response.isCorrect) {
+            showToast('Réponse correcte ! 👍', 'success');
+          } else {
+            showToast('Réponse incorrecte. 😕', 'danger');
+          }
+        } else {
+          showToast('Réponse enregistrée avec succès', 'success');
+        }
+        
+        // Désactiver la question si on n'affiche pas toutes les questions
+        if (!showAllQuestionsCheckbox.checked) {
+          const questionCard = document.querySelector(`.card[data-question-id="${questionId}"]`);
+          if (questionCard) {
+            questionCard.querySelector('.submit-answer').disabled = true;
+            questionCard.classList.add('opacity-50');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la soumission de la réponse:', error);
+        showToast(`Erreur: ${error.message}`, 'danger');
+      }
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

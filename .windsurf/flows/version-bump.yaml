@@ -1,0 +1,95 @@
+name: version-bump
+description: Incrémente la version du projet
+version: 1.0.0
+author: Cascade
+
+inputs:
+  - name: type
+    description: Type d'incrémentation (patch, minor, major)
+    type: string
+    required: true
+  - name: message
+    description: Message de commit
+    type: string
+    required: false
+    default: "chore: bump version"
+
+steps:
+  - name: validate_input
+    description: Valider le type d'incrémentation
+    run: |
+      if [[ "{{ inputs.type }}" != "patch" && "{{ inputs.type }}" != "minor" && "{{ inputs.type }}" != "major" ]]; then
+        echo "Type d'incrémentation invalide. Utilisez 'patch', 'minor' ou 'major'."
+        exit 1
+      fi
+
+  - name: bump_version
+    description: Incrémenter la version dans package.json
+    run: |
+      # Récupérer la version actuelle
+      CURRENT_VERSION=$(node -p "require('./package.json').version")
+      echo "Version actuelle: $CURRENT_VERSION"
+      
+      # Diviser la version en parties
+      IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+      
+      # Incrémenter la partie appropriée
+      if [[ "{{ inputs.type }}" == "major" ]]; then
+        MAJOR=$((MAJOR + 1))
+        MINOR=0
+        PATCH=0
+      elif [[ "{{ inputs.type }}" == "minor" ]]; then
+        MINOR=$((MINOR + 1))
+        PATCH=0
+      else
+        PATCH=$((PATCH + 1))
+      fi
+      
+      # Construire la nouvelle version
+      NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+      echo "Nouvelle version: $NEW_VERSION"
+      
+      # Mettre à jour package.json
+      sed -i '' "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$NEW_VERSION\"/" package.json
+      
+      # Mettre à jour le service worker
+      sed -i '' "s/const CACHE_NAME = 'qr-game-v[0-9]*'/const CACHE_NAME = 'qr-game-v$MAJOR$MINOR$PATCH'/" public/service-worker.js
+      
+      echo "Version mise à jour avec succès"
+
+  - name: create_version_file
+    description: Créer un fichier de version
+    write_file:
+      path: public/version.json
+      content: |
+        {
+          "version": "{{ run_result.bump_version.NEW_VERSION }}",
+          "buildDate": "{{ date.now }}",
+          "environment": "{{ env.NODE_ENV || 'development' }}"
+        }
+
+  - name: git_commit
+    description: Commiter les changements
+    run: |
+      # Vérifier si Git est disponible
+      if ! command -v git &> /dev/null; then
+        echo "Git n'est pas disponible. Les changements ne seront pas commités."
+        exit 0
+      fi
+      
+      # Vérifier si nous sommes dans un dépôt Git
+      if ! git rev-parse --is-inside-work-tree &> /dev/null; then
+        echo "Pas dans un dépôt Git. Les changements ne seront pas commités."
+        exit 0
+      fi
+      
+      # Ajouter les fichiers modifiés
+      git add package.json public/service-worker.js public/version.json
+      
+      # Commiter les changements
+      git commit -m "{{ inputs.message }} [v{{ run_result.bump_version.NEW_VERSION }}]"
+      
+      # Créer un tag
+      git tag -a "v{{ run_result.bump_version.NEW_VERSION }}" -m "Version {{ run_result.bump_version.NEW_VERSION }}"
+      
+      echo "Changements commités et tag créé"

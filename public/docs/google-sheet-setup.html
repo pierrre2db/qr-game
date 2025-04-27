@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Google Sheet - QR Game</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../css/admin.css">
+  
+  <style>
+    body {
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    pre {
+      background-color: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    
+    code {
+      font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.9em;
+    }
+    
+    h1, h2, h3 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .btn-back {
+      margin-bottom: 20px;
+    }
+    
+    table {
+      width: 100%;
+      margin-bottom: 1rem;
+      border-collapse: collapse;
+    }
+    
+    table, th, td {
+      border: 1px solid #dee2e6;
+    }
+    
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+    }
+    
+    th {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../admin.html" class="btn btn-primary btn-back">
+      <i class="fas fa-arrow-left"></i> Retour à l'administration
+    </a>
+    
+    <h1>Guide de configuration Google Sheet pour QR Game</h1>
+    
+    <p>Ce document explique comment configurer un Google Sheet et l'intégration Google Apps Script pour l'application QR Game.</p>
+    
+    <h2>1. Création du Google Sheet</h2>
+    
+    <h3>1.1. Créer une nouvelle feuille de calcul</h3>
+    
+    <ol>
+      <li>Connectez-vous à votre compte Google</li>
+      <li>Accédez à <a href="https://sheets.google.com" target="_blank">Google Sheets</a></li>
+      <li>Cliquez sur le bouton "+" pour créer une nouvelle feuille de calcul</li>
+      <li>Renommez la feuille en "QR Game Data" (ou le nom de votre choix)</li>
+    </ol>
+    
+    <h3>1.2. Configuration des onglets et colonnes</h3>
+    
+    <p>Créez les onglets suivants dans votre feuille de calcul :</p>
+    
+    <h4>Onglet "Réponses" (premier onglet)</h4>
+    
+    <p>Renommez le premier onglet en "Réponses" et configurez les colonnes suivantes :</p>
+    
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Horodatage</th>
+          <th>ID Joueur</th>
+          <th>Nom Joueur</th>
+          <th>Question ID</th>
+          <th>Réponse</th>
+          <th>Temps (sec)</th>
+          <th>Score</th>
+          <th>Appareil</th>
+          <th>Version</th>
+          <th>Coordonnées</th>
+        </tr>
+      </thead>
+    </table>
+    
+    <h4>Onglet "Joueurs"</h4>
+    
+    <p>Créez un nouvel onglet nommé "Joueurs" avec les colonnes suivantes :</p>
+    
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>ID Joueur</th>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>Date d'inscription</th>
+          <th>Dernière activité</th>
+          <th>Parties complétées</th>
+          <th>Score total</th>
+          <th>Temps moyen</th>
+        </tr>
+      </thead>
+    </table>
+    
+    <h4>Onglet "Questions"</h4>
+    
+    <p>Créez un nouvel onglet nommé "Questions" avec les colonnes suivantes :</p>
+    
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Titre</th>
+          <th>Description</th>
+          <th>Type</th>
+          <th>Points</th>
+          <th>Ordre</th>
+          <th>Options</th>
+          <th>Réponse correcte</th>
+        </tr>
+      </thead>
+    </table>
+    
+    <h4>Onglet "Statistiques"</h4>
+    
+    <p>Créez un nouvel onglet nommé "Statistiques" qui sera utilisé pour les calculs automatiques.</p>
+    
+    <h2>2. Configuration de Google Apps Script</h2>
+    
+    <h3>2.1. Créer un nouveau script</h3>
+    
+    <ol>
+      <li>Dans votre Google Sheet, cliquez sur "Extensions" > "Apps Script"</li>
+      <li>Renommez le projet en "QR Game Integration"</li>
+      <li>Supprimez tout le code par défaut dans le fichier <code>Code.gs</code></li>
+    </ol>
+    
+    <h3>2.2. Copier le code Apps Script</h3>
+    
+    <p>Copiez le code suivant dans le fichier <code>Code.gs</code> :</p>
+    
+    <pre><code>// Configuration
+const CONFIG = {
+  SHEET_ID: '', // Sera automatiquement rempli
+  RESPONSES_SHEET_NAME: 'Réponses',
+  PLAYERS_SHEET_NAME: 'Joueurs',
+  QUESTIONS_SHEET_NAME: 'Questions',
+  STATS_SHEET_NAME: 'Statistiques'
+};
+
+/**
+ * Point d'entrée pour les requêtes POST
+ */
+function doPost(e) {
+  try {
+    // Vérifier si la requête contient des données
+    if (!e || !e.postData || !e.postData.contents) {
+      return sendResponse(false, 'Aucune donnée reçue');
+    }
+    
+    // Analyser les données JSON
+    const data = JSON.parse(e.postData.contents);
+    
+    // Si c'est une requête de test, renvoyer un statut de succès
+    if (data.action === 'test') {
+      return sendResponse(true, 'Connexion réussie', { sheetAccess: checkSheetAccess() });
+    }
+    
+    // Traiter les différentes actions
+    switch (data.action) {
+      case 'submitAnswer':
+        return handleSubmitAnswer(data);
+      case 'registerPlayer':
+        return handleRegisterPlayer(data);
+      case 'importQuestions':
+        return handleImportQuestions(data);
+      case 'getStats':
+        return handleGetStats();
+      default:
+        return sendResponse(false, 'Action non reconnue');
+    }
+  } catch (error) {
+    console.error('Erreur dans doPost:', error);
+    return sendResponse(false, 'Erreur: ' + error.message);
+  }
+}
+
+/**
+ * Point d'entrée pour les requêtes GET
+ */
+function doGet(e) {
+  try {
+    // Vérifier si c'est une requête de test
+    if (e && e.parameter && e.parameter.test) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        message: 'Connexion réussie',
+        sheetAccess: checkSheetAccess()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Gérer les autres types de requêtes GET
+    if (e && e.parameter && e.parameter.action) {
+      switch (e.parameter.action) {
+        case 'getQuestions':
+          return handleGetQuestions();
+        case 'getPlayers':
+          return handleGetPlayers();
+        default:
+          return ContentService.createTextOutput(JSON.stringify({
+            success: false,
+            message: 'Action non reconnue'
+          })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    // Requête GET sans paramètres
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Paramètres manquants'
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    console.error('Erreur dans doGet:', error);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Erreur: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Vérifie l'accès à la feuille de calcul
+ */
+function checkSheetAccess() {
+  try {
+    // Si l'ID de la feuille n'est pas défini, utiliser la feuille active
+    if (!CONFIG.SHEET_ID) {
+      CONFIG.SHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+    }
+    
+    // Tenter d'accéder à la feuille
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    
+    // Vérifier l'existence des onglets requis
+    const sheets = ss.getSheets();
+    const sheetNames = sheets.map(sheet => sheet.getName());
+    
+    const requiredSheets = [
+      CONFIG.RESPONSES_SHEET_NAME,
+      CONFIG.PLAYERS_SHEET_NAME,
+      CONFIG.QUESTIONS_SHEET_NAME,
+      CONFIG.STATS_SHEET_NAME
+    ];
+    
+    const missingSheets = requiredSheets.filter(name => !sheetNames.includes(name));
+    
+    return {
+      hasAccess: true,
+      sheetsExist: missingSheets.length === 0,
+      missingSheets: missingSheets
+    };
+  } catch (error) {
+    console.error('Erreur lors de la vérification de l\'accès:', error);
+    return {
+      hasAccess: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Gère la soumission d'une réponse
+ */
+function handleSubmitAnswer(data) {
+  try {
+    // Vérifier les données requises
+    if (!data.playerId || !data.questionId || data.response === undefined) {
+      return sendResponse(false, 'Données manquantes pour la soumission de réponse');
+    }
+    
+    // Accéder à la feuille de calcul
+    const ss = SpreadsheetApp.openById(CONFIG.SHEET_ID);
+    const responsesSheet = ss.getSheetByName(CONFIG.RESPONSES_SHEET_NAME);
+    
+    // Préparer les données à insérer
+    const rowData = [
+      new Date(),                    // Horodatage
+      data.playerId,                 // ID Joueur
+      data.playerName || '',         // Nom Joueur
+      data.questionId,               // Question ID
+      data.response,                 // Réponse
+      data.timeSpent || 0,           // Temps (sec)
+      data.score || 0,               // Score
+      data.device || '',             // Appareil
+      data.version || '',            // Version
+      data.coordinates || ''         // Coordonnées
+    ];
+    
+    // Insérer les données
+    responsesSheet.appendRow(rowData);
+    
+    // Mettre à jour les statistiques du joueur
+    updatePlayerStats(data.playerId, data.playerName, data.score || 0, data.timeSpent || 0);
+    
+    return sendResponse(true, 'Réponse enregistrée avec succès');
+  } catch (error) {
+    console.error('Erreur lors de la soumission de réponse:', error);
+    return sendResponse(false, 'Erreur: ' + error.message);
+  }
+}
+
+/**
+ * Envoie une réponse formatée
+ */
+function sendResponse(success, message, data = {}) {
+  const response = {
+    success: success,
+    message: message,
+    ...data
+  };
+  
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code></pre>
+    
+    <p><strong>Note :</strong> Le code ci-dessus est une version simplifiée. Le code complet est disponible dans le fichier <a href="configuration-google-sheet.md" target="_blank">configuration-google-sheet.md</a>.</p>
+    
+    <h2>3. Déploiement du script</h2>
+    
+    <h3>3.1. Déployer en tant que service web</h3>
+    
+    <ol>
+      <li>Dans l'éditeur Apps Script, cliquez sur "Déployer" > "Nouveau déploiement"</li>
+      <li>Pour "Type de déploiement", sélectionnez "Application web"</li>
+      <li>Configurez les options suivantes :
+        <ul>
+          <li>Description : "QR Game Integration"</li>
+          <li>Exécuter en tant que : "Moi" (votre compte Google)</li>
+          <li>Qui a accès : "Tous, même anonyme" (pour permettre à l'application d'y accéder)</li>
+        </ul>
+      </li>
+      <li>Cliquez sur "Déployer"</li>
+      <li>Copiez l'URL du service web qui s'affiche (vous en aurez besoin pour configurer l'application)</li>
+    </ol>
+    
+    <h3>3.2. Autoriser les accès</h3>
+    
+    <p>Lors de la première utilisation du script, vous devrez autoriser les accès :</p>
+    
+    <ol>
+      <li>Ouvrez l'URL du service web dans un navigateur</li>
+      <li>Suivez les instructions pour autoriser le script à accéder à vos Google Sheets</li>
+    </ol>
+    
+    <h2>4. Configuration de l'application QR Game</h2>
+    
+    <h3>4.1. Configurer les paramètres dans l'interface d'administration</h3>
+    
+    <ol>
+      <li>Accédez à l'interface d'administration de QR Game</li>
+      <li>Allez dans l'onglet "Paramètres"</li>
+      <li>Dans la section "Intégration Google Forms", saisissez :
+        <ul>
+          <li>URL du script Apps Script : l'URL du service web que vous avez copiée</li>
+          <li>URL du Google Sheet : l'URL de votre feuille de calcul</li>
+          <li>ID du formulaire : laissez vide pour que le script crée automatiquement un formulaire</li>
+          <li>ID de la feuille : laissez vide pour utiliser la feuille active</li>
+        </ul>
+      </li>
+      <li>Activez l'option "Activer l'intégration Google Forms"</li>
+      <li>Activez l'option "Support hors ligne" si nécessaire</li>
+      <li>Cliquez sur "Tester la connexion" pour vérifier que tout fonctionne correctement</li>
+      <li>Enregistrez les paramètres</li>
+    </ol>
+    
+    <h2>5. Dépannage</h2>
+    
+    <h3>5.1. Problèmes courants</h3>
+    
+    <ul>
+      <li><strong>Erreur "Accès refusé"</strong> : Vérifiez les autorisations du script et du Google Sheet</li>
+      <li><strong>Données non synchronisées</strong> : Vérifiez la connexion internet et l'URL du script</li>
+      <li><strong>Erreur "Quota dépassé"</strong> : Google impose des limites d'utilisation, attendez ou passez à un compte Google Workspace</li>
+    </ul>
+    
+    <h3>5.2. Vérification des logs</h3>
+    
+    <p>Pour consulter les logs d'erreur :</p>
+    
+    <ol>
+      <li>Dans l'éditeur Apps Script, cliquez sur "Exécution" > "Journaux d'exécution"</li>
+      <li>Consultez les erreurs et les messages de débogage</li>
+    </ol>
+    
+    <hr>
+    
+    <p>Ce guide vous a expliqué comment configurer un Google Sheet et l'intégration Google Apps Script pour l'application QR Game. Si vous rencontrez des problèmes, n'hésitez pas à consulter la documentation de Google Apps Script ou à contacter le support technique.</p>
+    
+    <a href="../admin.html" class="btn btn-primary">
+      <i class="fas fa-arrow-left"></i> Retour à l'administration
+    </a>
+  </div>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

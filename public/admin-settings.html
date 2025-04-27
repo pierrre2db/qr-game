@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Paramètres</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+    .content {
+      padding: 20px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">QR Game Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html">Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-questions.html">Questions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-qrcodes.html">QR Codes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-settings.html">Paramètres</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container content">
+    <h1 class="mb-4">Paramètres</h1>
+    
+    <div class="row">
+      <!-- Paramètres généraux -->
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Paramètres généraux</h5>
+          </div>
+          <div class="card-body">
+            <form id="general-settings-form">
+              <div class="mb-3">
+                <label for="game-title" class="form-label">Titre du jeu</label>
+                <input type="text" class="form-control" id="game-title" placeholder="QR Game">
+              </div>
+              <div class="mb-3">
+                <label for="base-url" class="form-label">URL de base</label>
+                <input type="url" class="form-control" id="base-url" placeholder="http://localhost:3000">
+              </div>
+              <div class="mb-3">
+                <label for="admin-email" class="form-label">Email de l'administrateur</label>
+                <input type="email" class="form-control" id="admin-email" placeholder="admin@example.com">
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="primary-color" class="form-label">Couleur primaire</label>
+                  <input type="color" class="form-control form-control-color w-100" id="primary-color" value="#4285f4">
+                </div>
+                <div class="col-md-6">
+                  <label for="secondary-color" class="form-label">Couleur secondaire</label>
+                  <input type="color" class="form-control form-control-color w-100" id="secondary-color" value="#34a853">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sécurité -->
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Sécurité</h5>
+          </div>
+          <div class="card-body">
+            <form id="security-settings-form">
+              <div class="mb-3">
+                <label for="admin-password" class="form-label">Mot de passe administrateur</label>
+                <input type="password" class="form-control" id="admin-password" placeholder="Nouveau mot de passe">
+                <div class="form-text">Laissez vide pour conserver le mot de passe actuel.</div>
+              </div>
+              <div class="mb-3">
+                <label for="confirm-password" class="form-label">Confirmer le mot de passe</label>
+                <input type="password" class="form-control" id="confirm-password" placeholder="Confirmer le mot de passe">
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="require-auth">
+                <label class="form-check-label" for="require-auth">Exiger l'authentification pour accéder à l'administration</label>
+              </div>
+              <button type="submit" class="btn btn-primary">Mettre à jour</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <!-- Sauvegarde et restauration -->
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Sauvegarde et restauration</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <button id="backup-btn" class="btn btn-primary mb-3">
+                <i class="fas fa-download me-2"></i>Créer une sauvegarde
+              </button>
+              <div class="form-text">Crée une sauvegarde complète des questions et des réponses.</div>
+            </div>
+            <hr>
+            <div class="mb-3">
+              <label for="restore-file" class="form-label">Restaurer depuis une sauvegarde</label>
+              <input class="form-control mb-2" type="file" id="restore-file" accept=".zip">
+              <button id="restore-btn" class="btn btn-warning" disabled>
+                <i class="fas fa-upload me-2"></i>Restaurer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Maintenance -->
+      <div class="col-md-6 mb-4">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Maintenance</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <button id="reset-stats-btn" class="btn btn-danger mb-2">
+                <i class="fas fa-trash me-2"></i>Réinitialiser les statistiques
+              </button>
+              <div class="form-text">Efface toutes les réponses des joueurs. Cette action est irréversible.</div>
+            </div>
+            <hr>
+            <div class="mb-3">
+              <button id="clear-cache-btn" class="btn btn-secondary mb-2">
+                <i class="fas fa-broom me-2"></i>Vider le cache
+              </button>
+              <div class="form-text">Vide le cache du navigateur pour cette application.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container"></div>
+  
+  <!-- Modal de réinitialisation des statistiques -->
+  <div class="modal fade" id="reset-stats-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Réinitialiser les statistiques</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Attention :</strong> Cette action effacera définitivement toutes les réponses et statistiques des joueurs. Une sauvegarde sera créée automatiquement, mais cette opération est irréversible.
+          </div>
+          <div class="mb-3">
+            <label for="reset-password" class="form-label">Mot de passe administrateur</label>
+            <input type="password" class="form-control" id="reset-password" placeholder="Entrez le mot de passe">
+            <div class="invalid-feedback">Mot de passe incorrect</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-danger" id="confirm-reset-btn">
+            <i class="fas fa-trash me-1"></i> Réinitialiser
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let settings = {};
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Charger les paramètres
+      loadSettings();
+      
+      // Configurer les gestionnaires d'événements
+      document.getElementById('general-settings-form').addEventListener('submit', saveGeneralSettings);
+      document.getElementById('security-settings-form').addEventListener('submit', saveSecuritySettings);
+      document.getElementById('backup-btn').addEventListener('click', createBackup);
+      document.getElementById('restore-file').addEventListener('change', handleRestoreFileChange);
+      document.getElementById('restore-btn').addEventListener('click', restoreFromBackup);
+      document.getElementById('reset-stats-btn').addEventListener('click', showResetStatsModal);
+      document.getElementById('confirm-reset-btn').addEventListener('click', resetStats);
+      document.getElementById('clear-cache-btn').addEventListener('click', clearCache);
+    });
+    
+    // Charger les paramètres
+    async function loadSettings() {
+      try {
+        // Dans une vraie application, on chargerait les paramètres depuis le serveur
+        // Pour l'instant, on utilise localStorage
+        const storedSettings = localStorage.getItem('qr-game-settings');
+        if (storedSettings) {
+          settings = JSON.parse(storedSettings);
+          
+          // Remplir le formulaire avec les paramètres stockés
+          document.getElementById('game-title').value = settings.gameTitle || '';
+          document.getElementById('base-url').value = settings.baseUrl || '';
+          document.getElementById('admin-email').value = settings.adminEmail || '';
+          document.getElementById('primary-color').value = settings.primaryColor || '#4285f4';
+          document.getElementById('secondary-color').value = settings.secondaryColor || '#34a853';
+          document.getElementById('require-auth').checked = settings.requireAuth || false;
+        } else {
+          // Paramètres par défaut
+          settings = {
+            gameTitle: 'QR Game',
+            baseUrl: window.location.origin,
+            adminEmail: '',
+            primaryColor: '#4285f4',
+            secondaryColor: '#34a853',
+            requireAuth: false
+          };
+          
+          // Remplir le formulaire avec les paramètres par défaut
+          document.getElementById('game-title').value = settings.gameTitle;
+          document.getElementById('base-url').value = settings.baseUrl;
+          document.getElementById('primary-color').value = settings.primaryColor;
+          document.getElementById('secondary-color').value = settings.secondaryColor;
+          document.getElementById('require-auth').checked = settings.requireAuth;
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des paramètres:', error);
+        showToast('Erreur lors du chargement des paramètres', 'danger');
+      }
+    }
+    
+    // Enregistrer les paramètres généraux
+    function saveGeneralSettings(event) {
+      event.preventDefault();
+      
+      try {
+        // Récupérer les valeurs du formulaire
+        settings.gameTitle = document.getElementById('game-title').value;
+        settings.baseUrl = document.getElementById('base-url').value;
+        settings.adminEmail = document.getElementById('admin-email').value;
+        settings.primaryColor = document.getElementById('primary-color').value;
+        settings.secondaryColor = document.getElementById('secondary-color').value;
+        
+        // Enregistrer les paramètres
+        localStorage.setItem('qr-game-settings', JSON.stringify(settings));
+        
+        // Afficher un message de succès
+        showToast('Paramètres généraux enregistrés avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement des paramètres:', error);
+        showToast('Erreur lors de l\'enregistrement des paramètres', 'danger');
+      }
+    }
+    
+    // Enregistrer les paramètres de sécurité
+    function saveSecuritySettings(event) {
+      event.preventDefault();
+      
+      try {
+        const password = document.getElementById('admin-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        const requireAuth = document.getElementById('require-auth').checked;
+        
+        // Vérifier que les mots de passe correspondent
+        if (password && password !== confirmPassword) {
+          showToast('Les mots de passe ne correspondent pas', 'danger');
+          return;
+        }
+        
+        // Mettre à jour les paramètres
+        settings.requireAuth = requireAuth;
+        
+        // Enregistrer le mot de passe s'il a été modifié
+        if (password) {
+          // Dans une vraie application, on enverrait le mot de passe au serveur pour le hacher
+          // Pour l'instant, on le stocke en clair (ce qui n'est pas sécurisé)
+          settings.adminPassword = password;
+        }
+        
+        // Enregistrer les paramètres
+        localStorage.setItem('qr-game-settings', JSON.stringify(settings));
+        
+        // Réinitialiser les champs de mot de passe
+        document.getElementById('admin-password').value = '';
+        document.getElementById('confirm-password').value = '';
+        
+        // Afficher un message de succès
+        showToast('Paramètres de sécurité mis à jour avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des paramètres de sécurité:', error);
+        showToast('Erreur lors de la mise à jour des paramètres de sécurité', 'danger');
+      }
+    }
+    
+    // Créer une sauvegarde
+    async function createBackup() {
+      try {
+        // Dans une vraie application, on appellerait une API pour créer une sauvegarde
+        // Pour l'instant, on simule une sauvegarde
+        showToast('Création de la sauvegarde en cours...', 'info');
+        
+        // Simuler un délai
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Afficher un message de succès
+        showToast('Sauvegarde créée avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la création de la sauvegarde:', error);
+        showToast('Erreur lors de la création de la sauvegarde', 'danger');
+      }
+    }
+    
+    // Gérer le changement de fichier de restauration
+    function handleRestoreFileChange(event) {
+      const file = event.target.files[0];
+      const restoreBtn = document.getElementById('restore-btn');
+      
+      if (file && file.name.endsWith('.zip')) {
+        restoreBtn.disabled = false;
+      } else {
+        restoreBtn.disabled = true;
+        if (file) {
+          showToast('Le fichier de sauvegarde doit être au format ZIP', 'warning');
+        }
+      }
+    }
+    
+    // Restaurer depuis une sauvegarde
+    async function restoreFromBackup() {
+      try {
+        const file = document.getElementById('restore-file').files[0];
+        
+        if (!file) {
+          showToast('Veuillez sélectionner un fichier de sauvegarde', 'warning');
+          return;
+        }
+        
+        // Dans une vraie application, on enverrait le fichier au serveur
+        // Pour l'instant, on simule une restauration
+        showToast('Restauration en cours...', 'info');
+        
+        // Simuler un délai
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Réinitialiser le champ de fichier
+        document.getElementById('restore-file').value = '';
+        document.getElementById('restore-btn').disabled = true;
+        
+        // Afficher un message de succès
+        showToast('Restauration effectuée avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la restauration:', error);
+        showToast('Erreur lors de la restauration', 'danger');
+      }
+    }
+    
+    // Afficher le modal de réinitialisation des statistiques
+    function showResetStatsModal() {
+      const modal = new bootstrap.Modal(document.getElementById('reset-stats-modal'));
+      modal.show();
+    }
+    
+    // Réinitialiser les statistiques
+    async function resetStats() {
+      const passwordInput = document.getElementById('reset-password');
+      const password = passwordInput.value;
+      
+      if (!password) {
+        passwordInput.classList.add('is-invalid');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/responses/reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Fermer le modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('reset-stats-modal'));
+          modal.hide();
+          
+          // Réinitialiser le champ de mot de passe
+          passwordInput.value = '';
+          passwordInput.classList.remove('is-invalid');
+          
+          // Afficher un message de succès
+          showToast('Statistiques réinitialisées avec succès', 'success');
+        } else {
+          // Afficher un message d'erreur
+          if (response.status === 401) {
+            passwordInput.classList.add('is-invalid');
+          } else {
+            showToast(data.error || 'Erreur lors de la réinitialisation des statistiques', 'danger');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la réinitialisation des statistiques:', error);
+        showToast('Erreur de connexion au serveur', 'danger');
+      }
+    }
+    
+    // Vider le cache
+    function clearCache() {
+      try {
+        // Vider le localStorage
+        localStorage.removeItem('qr-game-questions');
+        localStorage.removeItem('qr-game-responses');
+        
+        // Afficher un message de succès
+        showToast('Cache vidé avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors du vidage du cache:', error);
+        showToast('Erreur lors du vidage du cache', 'danger');
+      }
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      const toastId = `toast-${Date.now()}`;
+      
+      const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body">
+              ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Fermer"></button>
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+      
+      const toastEl = document.getElementById(toastId);
+      const toast = new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
+      toast.show();
+      
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

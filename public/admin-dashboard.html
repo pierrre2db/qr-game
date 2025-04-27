@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Tableau de bord</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+    .content {
+      padding: 20px;
+    }
+    .card {
+      margin-bottom: 20px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">QR Game Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-dashboard.html">Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-questions.html">Questions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-qrcodes.html">QR Codes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-settings.html">Paramètres</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container content">
+    <h1 class="mb-4">Tableau de bord</h1>
+    
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card text-white bg-primary">
+          <div class="card-body">
+            <h5 class="card-title">Questions</h5>
+            <p class="card-text display-4" id="total-questions">0</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card text-white bg-success">
+          <div class="card-body">
+            <h5 class="card-title">Réponses</h5>
+            <p class="card-text display-4" id="total-responses">0</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card text-white bg-info">
+          <div class="card-body">
+            <h5 class="card-title">Joueurs</h5>
+            <p class="card-text display-4" id="total-players">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bouton de réinitialisation des statistiques -->
+    <div class="row mt-3">
+      <div class="col-12 text-end">
+        <button id="reset-stats-btn" class="btn btn-danger">
+          <i class="fas fa-trash"></i> Réinitialiser les statistiques
+        </button>
+      </div>
+    </div>
+    
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Activité récente</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped table-sm">
+                <thead>
+                  <tr>
+                    <th>Joueur</th>
+                    <th>Question</th>
+                    <th>Réponse</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-activity-table">
+                  <tr>
+                    <td colspan="4" class="text-center">Chargement des données...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Taux de réussite par question</h5>
+          </div>
+          <div class="card-body">
+            <canvas id="success-rate-chart" height="250"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container"></div>
+
+  <!-- Modal de réinitialisation des statistiques -->
+  <div class="modal fade" id="reset-stats-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Réinitialiser les statistiques</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Attention :</strong> Cette action effacera définitivement toutes les réponses et statistiques des joueurs. Une sauvegarde sera créée automatiquement, mais cette opération est irréversible.
+          </div>
+          <div class="mb-3">
+            <label for="admin-password" class="form-label">Mot de passe administrateur</label>
+            <input type="password" class="form-control" id="admin-password" placeholder="Entrez le mot de passe">
+            <div class="invalid-feedback">Mot de passe incorrect</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-danger" id="confirm-reset-btn">
+            <i class="fas fa-trash me-1"></i> Réinitialiser
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let questions = [];
+    let responses = [];
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardData();
+    });
+    
+    // Charger les données du tableau de bord
+    async function loadDashboardData() {
+      try {
+        // Charger les questions
+        const questionsResponse = await fetch('/api/questions');
+        if (questionsResponse.ok) {
+          const questionsData = await questionsResponse.json();
+          questions = questionsData.questions || [];
+          document.getElementById('total-questions').textContent = questions.length;
+        }
+        
+        // Charger les statistiques
+        const statsResponse = await fetch('/api/stats');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          document.getElementById('total-responses').textContent = statsData.totalResponses || 0;
+          document.getElementById('total-players').textContent = statsData.uniquePlayers || 0;
+          
+          // Mettre à jour l'activité récente
+          updateRecentActivity(statsData);
+          
+          // Mettre à jour le graphique
+          updateSuccessRateChart(statsData);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des données:', error);
+        showToast('Erreur lors du chargement des données', 'danger');
+      }
+    }
+    
+    // Mettre à jour l'activité récente
+    function updateRecentActivity(data) {
+      const tableBody = document.getElementById('recent-activity-table');
+      tableBody.innerHTML = '';
+      
+      if (!data.responses || !data.responses.length) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Aucune activité récente</td></tr>';
+        return;
+      }
+      
+      // Prendre les 5 dernières réponses
+      const recentResponses = data.responses.slice(-5).reverse();
+      
+      recentResponses.forEach(response => {
+        const row = document.createElement('tr');
+        
+        const playerCell = document.createElement('td');
+        playerCell.textContent = response.playerName || response.playerId;
+        
+        const questionCell = document.createElement('td');
+        const question = questions.find(q => q.id === response.questionId);
+        questionCell.textContent = question ? question.title : response.questionId;
+        
+        const responseCell = document.createElement('td');
+        responseCell.textContent = response.response;
+        
+        const dateCell = document.createElement('td');
+        const date = new Date(response.timestamp);
+        dateCell.textContent = date.toLocaleString();
+        
+        row.appendChild(playerCell);
+        row.appendChild(questionCell);
+        row.appendChild(responseCell);
+        row.appendChild(dateCell);
+        
+        tableBody.appendChild(row);
+      });
+    }
+    
+    // Mettre à jour le graphique de taux de réussite
+    function updateSuccessRateChart(data) {
+      if (!data.questionStats || !data.questionStats.length) {
+        return;
+      }
+      
+      const ctx = document.getElementById('success-rate-chart').getContext('2d');
+      
+      const labels = data.questionStats.map(stat => {
+        const question = questions.find(q => q.id === stat.questionId);
+        return question ? question.title : stat.questionId;
+      });
+      
+      const successRates = data.questionStats.map(stat => (stat.correctRate * 100).toFixed(1));
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Taux de réussite (%)',
+            data: successRates,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+    
+    // Réinitialiser les statistiques
+    document.getElementById('reset-stats-btn').addEventListener('click', () => {
+      const modal = new bootstrap.Modal(document.getElementById('reset-stats-modal'));
+      modal.show();
+    });
+    
+    document.getElementById('confirm-reset-btn').addEventListener('click', async () => {
+      const passwordInput = document.getElementById('admin-password');
+      const password = passwordInput.value;
+      
+      if (!password) {
+        passwordInput.classList.add('is-invalid');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/responses/reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Fermer le modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('reset-stats-modal'));
+          modal.hide();
+          
+          // Réinitialiser le champ de mot de passe
+          passwordInput.value = '';
+          passwordInput.classList.remove('is-invalid');
+          
+          // Afficher un message de succès
+          showToast('Statistiques réinitialisées avec succès', 'success');
+          
+          // Recharger les données du tableau de bord
+          loadDashboardData();
+        } else {
+          // Afficher un message d'erreur
+          if (response.status === 401) {
+            passwordInput.classList.add('is-invalid');
+          } else {
+            showToast(data.error || 'Erreur lors de la réinitialisation des statistiques', 'danger');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la réinitialisation des statistiques:', error);
+        showToast('Erreur de connexion au serveur', 'danger');
+      }
+    });
+  </script>
+</body>
+</html>

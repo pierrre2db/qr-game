@@ -1,0 +1,751 @@
+name: setup-qr-game
+description: Génère squelette PWA, scanner JS, Apps Script pour Google Forms
+version: 1.0.0
+author: Cascade
+
+steps:
+  - name: create_project_structure
+    description: Créer la structure de base du projet
+    run: |
+      mkdir -p public/{js,css,images}
+      mkdir -p google-apps-script
+      mkdir -p scripts
+      touch .env
+
+  - name: install_dependencies
+    description: Installer les dépendances nécessaires
+    run: |
+      npm init -y
+      npm install express body-parser cors dotenv
+      npm install --save-dev nodemon
+      npm install qrcode html5-qrcode
+
+  - name: create_server
+    description: Créer le serveur Express
+    write_file:
+      path: server.js
+      content: |
+        require('dotenv').config();
+        const express = require('express');
+        const bodyParser = require('body-parser');
+        const cors = require('cors');
+        const path = require('path');
+
+        const app = express();
+        const PORT = process.env.PORT || 3000;
+
+        // Middleware
+        app.use(cors());
+        app.use(bodyParser.json());
+        app.use(bodyParser.urlencoded({ extended: true }));
+        app.use(express.static(path.join(__dirname, 'public')));
+
+        // Routes
+        app.get('/api/health', (req, res) => {
+          res.json({ status: 'ok' });
+        });
+
+        // Handle deep linking routes
+        app.get('/game/:gameId', (req, res) => {
+          res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        });
+
+        // Fallback route for SPA
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        });
+
+        // Start server
+        app.listen(PORT, () => {
+          console.log(`Server running on port ${PORT}`);
+        });
+
+  - name: create_pwa_files
+    description: Créer les fichiers de base pour la PWA
+    write_file:
+      path: public/index.html
+      content: |
+        <!DOCTYPE html>
+        <html lang="fr">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="theme-color" content="#4285f4">
+          <title>QR Game</title>
+          <link rel="stylesheet" href="css/styles.css">
+          <link rel="manifest" href="manifest.json">
+          <link rel="icon" href="images/favicon.ico" type="image/x-icon">
+          <link rel="apple-touch-icon" href="images/icon-192x192.png">
+        </head>
+        <body>
+          <header>
+            <h1>QR Game</h1>
+            <nav>
+              <button id="scanButton" class="primary-button">Scanner QR</button>
+              <button id="installButton" class="secondary-button" hidden>Installer</button>
+            </nav>
+          </header>
+
+          <main>
+            <section id="home-screen" class="screen active">
+              <div class="card">
+                <h2>Bienvenue au QR Game!</h2>
+                <p>Scannez des codes QR pour débloquer des défis et compléter le jeu.</p>
+                <div class="action-buttons">
+                  <button id="startGameButton" class="primary-button">Nouvelle Partie</button>
+                  <button id="resumeGameButton" class="secondary-button">Reprendre</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="player-info-screen" class="screen">
+              <div class="card">
+                <h2>Informations Joueur</h2>
+                <form id="player-info-form">
+                  <div class="form-group">
+                    <label for="player-name">Votre nom</label>
+                    <input type="text" id="player-name" required placeholder="Entrez votre nom">
+                  </div>
+                  <div class="form-group">
+                    <label for="player-email">Email (optionnel)</label>
+                    <input type="email" id="player-email" placeholder="Entrez votre email">
+                  </div>
+                  <div class="form-check">
+                    <input type="checkbox" id="data-consent" required>
+                    <label for="data-consent">J'accepte que mes données de jeu soient collectées</label>
+                  </div>
+                  <div class="action-buttons">
+                    <button type="submit" class="primary-button">Commencer</button>
+                    <button type="button" id="back-to-home" class="secondary-button">Retour</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section id="scanner-screen" class="screen">
+              <div class="scanner-container">
+                <div id="qr-reader"></div>
+                <button id="closeScanner" class="icon-button">✕</button>
+              </div>
+            </section>
+
+            <section id="game-screen" class="screen">
+              <div class="card">
+                <h2 id="challenge-title">Défi</h2>
+                <p id="challenge-description">Scannez le prochain code QR pour continuer.</p>
+                <div id="game-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                  </div>
+                  <p><span id="completed-challenges">0</span>/<span id="total-challenges">5</span> complétés</p>
+                </div>
+                <div class="player-info">
+                  <p>Joueur: <span id="current-player-name">-</span></p>
+                  <button id="submit-progress" class="secondary-button">Soumettre Progression</button>
+                </div>
+              </div>
+            </section>
+            
+            <section id="results-screen" class="screen">
+              <div class="card">
+                <h2>Résultats</h2>
+                <div id="results-content">
+                  <p>Félicitations! Vous avez terminé le jeu.</p>
+                  <div class="stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Défis complétés:</span>
+                      <span id="final-challenges-count">5/5</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Temps total:</span>
+                      <span id="total-time">00:00:00</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="action-buttons">
+                  <button id="share-results" class="primary-button">Partager</button>
+                  <button id="new-game" class="secondary-button">Nouvelle Partie</button>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <footer>
+            <p>&copy; 2025 QR Game</p>
+          </footer>
+
+          <div id="toast" class="toast"></div>
+
+          <script src="js/html5-qrcode.min.js"></script>
+          <script src="js/app.js"></script>
+          <script src="js/qrscanner.js"></script>
+          <script src="js/forms-integration.js"></script>
+          <script>
+            // Register service worker
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                  .then(reg => console.log('Service worker enregistré:', reg))
+                  .catch(err => console.log('Échec d\'enregistrement du service worker:', err));
+              });
+            }
+          </script>
+        </body>
+        </html>
+
+  - name: create_css
+    description: Créer les styles CSS
+    write_file:
+      path: public/css/styles.css
+      content: |
+        :root {
+          --primary-color: #4285f4;
+          --secondary-color: #34a853;
+          --background-color: #f5f5f5;
+          --card-background: #ffffff;
+          --text-color: #333333;
+          --border-radius: 8px;
+          --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          --error-color: #ea4335;
+          --success-color: #34a853;
+        }
+
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background-color: var(--background-color);
+          color: var(--text-color);
+          line-height: 1.6;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        header {
+          background-color: var(--primary-color);
+          color: white;
+          padding: 1rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Styles supplémentaires ici... */
+
+  - name: create_app_js
+    description: Créer le fichier JavaScript principal
+    write_file:
+      path: public/js/app.js
+      content: |
+        // Main application logic
+        document.addEventListener('DOMContentLoaded', () => {
+          // DOM Elements
+          const scanButton = document.getElementById('scanButton');
+          const installButton = document.getElementById('installButton');
+          const startGameButton = document.getElementById('startGameButton');
+          const resumeGameButton = document.getElementById('resumeGameButton');
+          
+          // Game state
+          let gameState = {
+            inProgress: false,
+            currentChallenge: 0,
+            totalChallenges: 5,
+            playerName: '',
+            playerEmail: '',
+            startTime: null,
+            endTime: null,
+            challenges: [
+              { id: 'start', title: 'Point de Départ', description: 'Trouvez le premier code QR pour commencer votre voyage!' },
+              { id: 'challenge1', title: 'Premier Défi', description: 'Vous l\'avez trouvé! Maintenant cherchez le deuxième code QR.' },
+              { id: 'challenge2', title: 'Deuxième Défi', description: 'Bien joué! Trouvez le troisième code QR.' },
+              { id: 'challenge3', title: 'Troisième Défi', description: 'Presque terminé! Trouvez le quatrième code QR.' },
+              { id: 'challenge4', title: 'Défi Final', description: 'Le dernier! Trouvez le code QR final pour terminer le jeu.' },
+              { id: 'finish', title: 'Jeu Terminé!', description: 'Félicitations! Vous avez complété tous les défis!' }
+            ]
+          };
+          
+          // Application logic here...
+        });
+
+  - name: create_qr_scanner
+    description: Créer le module de scanner QR
+    write_file:
+      path: public/js/qrscanner.js
+      content: |
+        // QR Scanner functionality
+        let html5QrCode;
+
+        // Initialize QR Scanner
+        function initQRScanner() {
+          if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("qr-reader");
+          }
+          
+          const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+          
+          // Start scanner with camera
+          html5QrCode.start(
+            { facingMode: "environment" }, 
+            qrConfig,
+            onScanSuccess,
+            onScanFailure
+          ).catch(err => {
+            console.error(`Unable to start scanning: ${err}`);
+            showToast('Camera access denied or not available');
+          });
+        }
+
+        // Success callback when QR code is scanned
+        function onScanSuccess(decodedText, decodedResult) {
+          // Stop scanning
+          closeQRScanner();
+          
+          // Process the result
+          console.log(`QR Code detected: ${decodedText}`);
+          processQRResult(decodedText);
+        }
+
+        // Failure callback
+        function onScanFailure(error) {
+          // Handle scan failure, usually better to ignore and keep scanning
+          console.warn(`QR scan error: ${error}`);
+        }
+
+        // Close QR Scanner
+        function closeQRScanner() {
+          if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().catch(err => {
+              console.error(`Unable to stop scanning: ${err}`);
+            });
+          }
+        }
+
+  - name: create_forms_integration
+    description: Créer le module d'intégration Google Forms
+    write_file:
+      path: public/js/forms-integration.js
+      content: |
+        /**
+         * Module d'intégration avec Google Forms via Apps Script
+         */
+
+        class FormsIntegration {
+          constructor() {
+            // URL du déploiement Web Apps Script (à remplacer par votre URL de déploiement)
+            this.scriptUrl = 'https://script.google.com/macros/s/VOTRE_ID_DE_DEPLOIEMENT/exec';
+          }
+
+          /**
+           * Soumet les données du joueur au formulaire Google
+           * @param {Object} playerData - Données du joueur à soumettre
+           * @returns {Promise} - Promesse résolue avec la réponse du serveur
+           */
+          async submitPlayerData(playerData) {
+            try {
+              // Vérifier si nous sommes en ligne
+              if (!navigator.onLine) {
+                // Stocker les données localement pour soumission ultérieure
+                this.storeDataForLaterSubmission(playerData);
+                return {
+                  status: 'pending',
+                  message: 'Données stockées localement pour soumission ultérieure'
+                };
+              }
+
+              // Préparer les données à envoyer
+              const response = await fetch(this.scriptUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(playerData)
+              });
+
+              // Vérifier si la requête a réussi
+              if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+              }
+
+              // Analyser la réponse JSON
+              const data = await response.json();
+              return data;
+            } catch (error) {
+              console.error('Erreur lors de la soumission des données:', error);
+              
+              // Stocker les données localement en cas d'échec
+              this.storeDataForLaterSubmission(playerData);
+              
+              return {
+                status: 'error',
+                message: `Erreur: ${error.message}. Données stockées localement.`
+              };
+            }
+          }
+
+          /**
+           * Stocke les données localement pour une soumission ultérieure
+           * @param {Object} playerData - Données du joueur à stocker
+           */
+          storeDataForLaterSubmission(playerData) {
+            // Implémentation du stockage local...
+          }
+        }
+
+        // Créer une instance globale
+        const formsIntegration = new FormsIntegration();
+
+  - name: create_google_apps_script
+    description: Créer le script Google Apps Script
+    write_file:
+      path: google-apps-script/form-integration.js
+      content: |
+        /**
+         * QR Game - Google Forms Integration
+         * Ce script permet d'intégrer les données du jeu QR avec Google Forms
+         */
+
+        // ID du formulaire Google Forms (à remplacer par votre ID de formulaire)
+        const FORM_ID = 'VOTRE_ID_DE_FORMULAIRE';
+
+        /**
+         * Crée un nouveau formulaire pour le jeu QR si nécessaire
+         */
+        function createQRGameForm() {
+          try {
+            // Vérifier si le formulaire existe déjà
+            let form;
+            try {
+              form = FormApp.openById(FORM_ID);
+              Logger.log('Formulaire existant trouvé. ID: ' + FORM_ID);
+            } catch (e) {
+              // Créer un nouveau formulaire
+              form = FormApp.create('QR Game - Collecte de Données');
+              Logger.log('Nouveau formulaire créé. ID: ' + form.getId());
+              Logger.log('Remplacez la constante FORM_ID dans le script avec cet ID.');
+              
+              // Configuration du formulaire
+              form.setDescription('Formulaire pour collecter les données du jeu QR Scanner');
+              form.setCollectEmail(true);
+              form.setAllowResponseEdits(false);
+              form.setPublishingSummary(true);
+              
+              // Ajouter les questions
+              form.addTextItem().setTitle('ID Joueur').setRequired(true);
+              form.addTextItem().setTitle('Nom du Joueur').setRequired(true);
+              
+              // Ajouter une question à choix multiple pour le niveau atteint
+              const levelItem = form.addMultipleChoiceItem();
+              levelItem.setTitle('Niveau Atteint');
+              levelItem.setChoices([
+                levelItem.createChoice('Départ'),
+                levelItem.createChoice('Défi 1'),
+                levelItem.createChoice('Défi 2'),
+                levelItem.createChoice('Défi 3'),
+                levelItem.createChoice('Défi 4'),
+                levelItem.createChoice('Terminé')
+              ]);
+              levelItem.setRequired(true);
+              
+              // Ajouter d'autres questions utiles
+              form.addDateTimeItem().setTitle('Date et Heure de Complétion').setRequired(true);
+              form.addParagraphTextItem().setTitle('Commentaires').setRequired(false);
+            }
+            
+            return form;
+          } catch (error) {
+            Logger.log('Erreur lors de la création/récupération du formulaire: ' + error.toString());
+            return null;
+          }
+        }
+
+        /**
+         * Soumet les données du jeu au formulaire Google
+         */
+        function submitGameData(e) {
+          // Implémentation de la soumission des données...
+        }
+
+        /**
+         * Point d'entrée pour les requêtes Web
+         */
+        function doPost(e) {
+          return submitGameData(e);
+        }
+
+  - name: create_service_worker
+    description: Créer le service worker pour la PWA
+    write_file:
+      path: public/service-worker.js
+      content: |
+        const CACHE_NAME = 'qr-game-v1';
+        const ASSETS_TO_CACHE = [
+          '/',
+          '/index.html',
+          '/css/styles.css',
+          '/js/app.js',
+          '/js/qrscanner.js',
+          '/js/html5-qrcode.min.js',
+          '/manifest.json',
+          '/images/icon-192x192.png',
+          '/images/icon-512x512.png'
+        ];
+
+        // Install service worker and cache assets
+        self.addEventListener('install', event => {
+          event.waitUntil(
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                console.log('Caching app assets');
+                return cache.addAll(ASSETS_TO_CACHE);
+              })
+          );
+        });
+
+        // Activate service worker and clean up old caches
+        self.addEventListener('activate', event => {
+          event.waitUntil(
+            caches.keys().then(cacheNames => {
+              return Promise.all(
+                cacheNames.map(cacheName => {
+                  if (cacheName !== CACHE_NAME) {
+                    console.log('Removing old cache', cacheName);
+                    return caches.delete(cacheName);
+                  }
+                })
+              );
+            })
+          );
+          return self.clients.claim();
+        });
+
+        // Fetch resources from cache or network
+        self.addEventListener('fetch', event => {
+          event.respondWith(
+            caches.match(event.request)
+              .then(response => {
+                // Return cached response if found
+                if (response) {
+                  return response;
+                }
+                
+                // Clone the request
+                const fetchRequest = event.request.clone();
+                
+                // Make network request and cache the response
+                return fetch(fetchRequest).then(response => {
+                  // Check if valid response
+                  if (!response || response.status !== 200 || response.type !== 'basic') {
+                    return response;
+                  }
+                  
+                  // Clone the response
+                  const responseToCache = response.clone();
+                  
+                  // Cache the fetched response
+                  caches.open(CACHE_NAME)
+                    .then(cache => {
+                      cache.put(event.request, responseToCache);
+                    });
+                    
+                  return response;
+                });
+              })
+          );
+        });
+
+  - name: create_manifest
+    description: Créer le manifest pour la PWA
+    write_file:
+      path: public/manifest.json
+      content: |
+        {
+          "name": "QR Game",
+          "short_name": "QR Game",
+          "description": "PWA QR scanner app with deep linking for interactive games",
+          "start_url": "/",
+          "display": "standalone",
+          "background_color": "#4285f4",
+          "theme_color": "#4285f4",
+          "orientation": "portrait",
+          "icons": [
+            {
+              "src": "images/icon-192x192.png",
+              "sizes": "192x192",
+              "type": "image/png",
+              "purpose": "any maskable"
+            },
+            {
+              "src": "images/icon-512x512.png",
+              "sizes": "512x512",
+              "type": "image/png",
+              "purpose": "any maskable"
+            }
+          ]
+        }
+
+  - name: create_qr_generator
+    description: Créer un script pour générer des codes QR
+    write_file:
+      path: scripts/generate-qr-codes.js
+      content: |
+        const fs = require('fs');
+        const path = require('path');
+        const QRCode = require('qrcode');
+
+        // Create output directory if it doesn't exist
+        const outputDir = path.join(__dirname, '..', 'qr-codes');
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir);
+        }
+
+        // Base URL for the QR codes
+        const baseUrl = 'https://qr-game.example.com/game/';
+
+        // Challenge IDs from the app
+        const challengeIds = [
+          'start',
+          'challenge1',
+          'challenge2',
+          'challenge3',
+          'challenge4',
+          'finish'
+        ];
+
+        // Generate QR codes for each challenge
+        async function generateQRCodes() {
+          console.log('Generating QR codes for challenges...');
+          
+          for (const id of challengeIds) {
+            const url = baseUrl + id;
+            const outputPath = path.join(outputDir, `${id}.png`);
+            
+            try {
+              await QRCode.toFile(outputPath, url, {
+                color: {
+                  dark: '#4285F4',
+                  light: '#FFFFFF'
+                },
+                width: 300,
+                margin: 1
+              });
+              console.log(`Created QR code for ${id} at ${outputPath}`);
+            } catch (err) {
+              console.error(`Error generating QR code for ${id}:`, err);
+            }
+          }
+          
+          console.log('QR code generation complete!');
+        }
+
+        generateQRCodes();
+
+  - name: update_package_json
+    description: Mettre à jour le package.json
+    write_file:
+      path: package.json
+      content: |
+        {
+          "name": "qr-game",
+          "version": "1.0.0",
+          "description": "PWA QR scanner app with deep linking",
+          "main": "server.js",
+          "scripts": {
+            "start": "node server.js",
+            "dev": "nodemon server.js",
+            "generate-qr": "node scripts/generate-qr-codes.js"
+          },
+          "dependencies": {
+            "express": "^4.18.2",
+            "body-parser": "^1.20.2",
+            "cors": "^2.8.5",
+            "dotenv": "^16.3.1",
+            "qrcode": "^1.5.3",
+            "html5-qrcode": "^2.3.8"
+          },
+          "devDependencies": {
+            "nodemon": "^3.0.1"
+          }
+        }
+
+  - name: create_readme
+    description: Créer un README pour le projet
+    write_file:
+      path: README.md
+      content: |
+        # QR Game - PWA QR Scanner App with Deep Linking
+
+        Une Progressive Web Application (PWA) qui permet aux utilisateurs de scanner des codes QR dans le cadre d'une expérience de jeu interactive. L'application prend en charge les liens profonds vers des défis spécifiques.
+
+        ## Fonctionnalités
+
+        - Progressive Web App (installable sur les appareils)
+        - Fonctionnalité de scan de codes QR
+        - Deep linking vers des défis spécifiques
+        - Support hors ligne via le cache du service worker
+        - Suivi et persistance de la progression du jeu
+        - Intégration avec Google Forms pour la collecte de données
+
+        ## Stack Technique
+
+        - Frontend: HTML, CSS, JavaScript
+        - Scan QR: Bibliothèque HTML5-QRCode
+        - Backend: Node.js avec Express
+        - Fonctionnalités PWA: Service Worker, Web App Manifest
+        - Intégration: Google Apps Script
+
+        ## Démarrage
+
+        ### Prérequis
+
+        - Node.js (v14 ou supérieur)
+        - npm (v6 ou supérieur)
+
+        ### Installation
+
+        1. Clonez le dépôt
+        2. Installez les dépendances:
+           ```
+           npm install
+           ```
+        3. Démarrez le serveur de développement:
+           ```
+           npm run dev
+           ```
+        4. Ouvrez votre navigateur et accédez à `http://localhost:3000`
+
+        ## Comment jouer
+
+        1. Commencez une nouvelle partie ou reprenez une partie existante
+        2. Scannez des codes QR pour progresser à travers les défis
+        3. Chaque code QR doit contenir une URL au format: `https://votredomaine.com/game/idDuDefi`
+        4. Complétez tous les défis pour terminer le jeu
+
+        ## Création de codes QR
+
+        Vous pouvez créer des codes QR pour le jeu en utilisant n'importe quel générateur de codes QR. Chaque code QR doit encoder une URL au format suivant:
+
+        ```
+        https://votredomaine.com/game/idDuDefi
+        ```
+
+        Où `idDuDefi` correspond aux ID de défis définis dans l'application:
+        - start
+        - challenge1
+        - challenge2
+        - challenge3
+        - challenge4
+        - finish
+
+        ## Déploiement
+
+        Cette application peut être déployée sur n'importe quel service d'hébergement statique ou plateforme d'hébergement Node.js comme Netlify, Vercel ou Heroku.
+
+        ## Intégration Google Forms
+
+        Consultez le fichier `README-FORMS.md` pour obtenir des instructions détaillées sur la configuration de l'intégration avec Google Forms.

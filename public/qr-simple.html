@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Générateur Simple</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding: 20px;
+    }
+    .qr-container {
+      text-align: center;
+      margin: 20px 0;
+    }
+    #status {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="mb-4">Générateur QR Simple</h1>
+    
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Générer un QR code</h5>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label for="qr-text" class="form-label">Texte pour le QR code</label>
+              <input type="text" class="form-control" id="qr-text" value="http://localhost:3000/game.html?q=Q1">
+            </div>
+            <button id="generate-btn" class="btn btn-primary">Générer</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">QR Code</h5>
+          </div>
+          <div class="card-body">
+            <div id="qr-container" class="qr-container">
+              <p>Cliquez sur "Générer" pour créer un QR code</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="status" class="alert alert-info">
+      Prêt à générer des QR codes
+    </div>
+    
+    <div class="mt-4">
+      <a href="index.html" class="btn btn-secondary">Retour à l'accueil</a>
+    </div>
+  </div>
+  
+  <!-- QRCode.js directement depuis CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  
+  <script>
+    // Éléments DOM
+    const qrText = document.getElementById('qr-text');
+    const generateBtn = document.getElementById('generate-btn');
+    const qrContainer = document.getElementById('qr-container');
+    const statusElement = document.getElementById('status');
+    
+    // Vérifier si la bibliothèque QRCode est chargée
+    document.addEventListener('DOMContentLoaded', () => {
+      // Attendre un peu pour s'assurer que la bibliothèque est chargée
+      setTimeout(() => {
+        if (typeof QRCode === 'undefined') {
+          statusElement.className = 'alert alert-danger';
+          statusElement.textContent = 'Erreur: La bibliothèque QRCode n\'est pas chargée';
+          
+          // Essayer de charger la bibliothèque à nouveau
+          const script = document.createElement('script');
+          script.src = "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js";
+          script.onload = () => {
+            statusElement.className = 'alert alert-success';
+            statusElement.textContent = 'La bibliothèque QRCode a été chargée avec succès';
+          };
+          script.onerror = (error) => {
+            statusElement.className = 'alert alert-danger';
+            statusElement.textContent = 'Échec du chargement de la bibliothèque QRCode: ' + error;
+          };
+          document.head.appendChild(script);
+        } else {
+          statusElement.className = 'alert alert-success';
+          statusElement.textContent = 'La bibliothèque QRCode est chargée correctement';
+        }
+      }, 500);
+    });
+    
+    // Générer un QR code
+    generateBtn.addEventListener('click', () => {
+      const text = qrText.value.trim();
+      
+      if (!text) {
+        statusElement.className = 'alert alert-warning';
+        statusElement.textContent = 'Veuillez entrer un texte pour le QR code';
+        return;
+      }
+      
+      try {
+        // Vider le conteneur
+        qrContainer.innerHTML = '';
+        
+        // Créer un élément canvas pour le QR code
+        const canvas = document.createElement('canvas');
+        qrContainer.appendChild(canvas);
+        
+        // Générer le QR code
+        QRCode.toCanvas(canvas, text, {
+          width: 300,
+          margin: 4,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        }, (error) => {
+          if (error) {
+            console.error('Erreur lors de la génération du QR code:', error);
+            statusElement.className = 'alert alert-danger';
+            statusElement.textContent = `Erreur: ${error.message || 'Erreur inconnue'}`;
+            return;
+          }
+          
+          statusElement.className = 'alert alert-success';
+          statusElement.textContent = `QR code généré avec succès pour: ${text}`;
+          
+          // Ajouter un lien de téléchargement
+          const downloadLink = document.createElement('a');
+          downloadLink.href = canvas.toDataURL('image/png');
+          downloadLink.download = 'qrcode.png';
+          downloadLink.className = 'btn btn-success mt-3';
+          downloadLink.textContent = 'Télécharger le QR code';
+          qrContainer.appendChild(downloadLink);
+        });
+      } catch (error) {
+        console.error('Exception lors de la génération du QR code:', error);
+        statusElement.className = 'alert alert-danger';
+        statusElement.textContent = `Exception: ${error.message || 'Erreur inconnue'}`;
+      }
+    });
+  </script>
+</body>
+</html>

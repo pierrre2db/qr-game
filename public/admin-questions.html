@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Gestion des Questions</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+    }
+    .content {
+      padding: 20px;
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .table-actions {
+      white-space: nowrap;
+    }
+    .table-actions .btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">QR Game Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html">Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-questions.html">Questions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-qrcodes.html">QR Codes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-settings.html">Paramètres</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>Gestion des questions</h1>
+      <div>
+        <button id="add-question-btn" class="btn btn-primary me-2">
+          <i class="fas fa-plus"></i> Ajouter une question
+        </button>
+        <div class="btn-group">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="fas fa-file-export"></i> Exporter
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="#" id="export-json-btn">Exporter en JSON</a></li>
+            <li><a class="dropdown-item" href="#" id="export-csv-btn">Exporter en CSV</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Importer des questions</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <input class="form-control" type="file" id="import-file" accept=".json">
+          </div>
+          <div class="col-md-3">
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="replace-existing">
+              <label class="form-check-label" for="replace-existing">
+                Remplacer les questions existantes
+              </label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <button id="import-btn" class="btn btn-primary w-100">
+              <i class="fas fa-file-import"></i> Importer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Titre</th>
+                <th>Type</th>
+                <th>Points</th>
+                <th>Ordre</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="questions-table-body">
+              <tr>
+                <td colspan="6" class="text-center">Chargement des questions...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Question Modal -->
+  <div class="modal fade" id="question-modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="question-modal-title">Ajouter une question</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="question-form">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="question-id" class="form-label">ID</label>
+                <input type="text" class="form-control" id="question-id" required>
+                <small class="form-text text-muted">Identifiant unique pour la question (ex: Q1, Q2)</small>
+              </div>
+              <div class="col-md-6">
+                <label for="question-type" class="form-label">Type</label>
+                <select class="form-select" id="question-type" required>
+                  <option value="standard">QCM</option>
+                  <option value="text">Texte</option>
+                  <option value="number">Numérique</option>
+                  <option value="comment">Commentaire</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="question-title" class="form-label">Titre</label>
+              <input type="text" class="form-control" id="question-title" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="question-description" class="form-label">Description</label>
+              <textarea class="form-control" id="question-description" rows="3" required></textarea>
+            </div>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="question-points" class="form-label">Points</label>
+                <input type="number" class="form-control" id="question-points" min="0" value="1">
+              </div>
+              <div class="col-md-6">
+                <label for="question-order" class="form-label">Ordre</label>
+                <input type="number" class="form-control" id="question-order" min="1" value="1">
+              </div>
+            </div>
+            
+            <div id="options-container" class="mb-3">
+              <label class="form-label">Options</label>
+              <div id="options-list">
+                <!-- Les options seront ajoutées ici -->
+              </div>
+              <button type="button" id="add-option-btn" class="btn btn-sm btn-outline-secondary mt-2">
+                <i class="fas fa-plus"></i> Ajouter une option
+              </button>
+            </div>
+            
+            <div id="correct-answer-container" class="mb-3">
+              <label for="question-correct-answer" class="form-label">Réponse correcte</label>
+              <input type="text" class="form-control" id="question-correct-answer">
+            </div>
+            
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="question-is-end-game">
+              <label class="form-check-label" for="question-is-end-game">
+                Question finale (termine le jeu)
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" id="save-question-btn" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="delete-modal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmer la suppression</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Êtes-vous sûr de vouloir supprimer cette question ? Cette action est irréversible.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" id="confirm-delete-btn" class="btn btn-danger">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container"></div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let questions = [];
+    let currentQuestionId = null;
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      // Charger les questions
+      loadQuestions();
+      
+      // Gestionnaires pour les questions
+      document.getElementById('add-question-btn').addEventListener('click', addQuestion);
+      document.getElementById('save-question-btn').addEventListener('click', saveQuestion);
+      document.getElementById('confirm-delete-btn').addEventListener('click', deleteQuestion);
+      document.getElementById('question-type').addEventListener('change', () => {
+        updateFormByType(document.getElementById('question-type').value);
+      });
+      document.getElementById('add-option-btn').addEventListener('click', addOptionField);
+      
+      // Gestionnaires pour l'import/export
+      document.getElementById('import-btn').addEventListener('click', importQuestions);
+      document.getElementById('export-json-btn').addEventListener('click', exportQuestionsJSON);
+      document.getElementById('export-csv-btn').addEventListener('click', exportQuestionsCSV);
+    });
+    
+    // Charger les questions
+    async function loadQuestions() {
+      try {
+        // Essayer d'abord de charger depuis l'API
+        const response = await fetch('/api/questions');
+        if (response.ok) {
+          const data = await response.json();
+          questions = data.questions || [];
+          
+          // Stocker dans le localStorage pour les autres pages
+          localStorage.setItem('qr_game_questions', JSON.stringify(questions));
+        } else {
+          // Si l'API échoue, essayer de récupérer depuis le localStorage
+          const storedQuestions = localStorage.getItem('qr_game_questions');
+          if (storedQuestions) {
+            questions = JSON.parse(storedQuestions);
+            showToast('Questions chargées depuis le cache local', 'warning');
+          }
+        }
+        
+        console.log('Questions chargées:', questions); // Debug
+        
+        if (!questions || questions.length === 0) {
+          showToast('Aucune question trouvée. Veuillez vérifier la connexion à l\'API.', 'danger');
+        }
+        
+        displayQuestions();
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        
+        // Essayer de récupérer depuis le localStorage en cas d'erreur
+        const storedQuestions = localStorage.getItem('qr_game_questions');
+        if (storedQuestions) {
+          questions = JSON.parse(storedQuestions);
+          showToast('Questions chargées depuis le cache local suite à une erreur', 'warning');
+          displayQuestions();
+        } else {
+          showToast('Erreur lors du chargement des questions', 'danger');
+        }
+      }
+    }
+    
+    // Afficher les questions
+    function displayQuestions() {
+      const tableBody = document.getElementById('questions-table-body');
+      tableBody.innerHTML = '';
+      
+      if (!questions || !questions.length) {
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Aucune question trouvée</td></tr>';
+        console.error('Aucune question disponible:', questions);
+        return;
+      }
+      
+      console.log(`Affichage de ${questions.length} questions`);
+      
+      questions.forEach(question => {
+        const row = document.createElement('tr');
+        
+        const idCell = document.createElement('td');
+        idCell.textContent = question.id;
+        
+        const titleCell = document.createElement('td');
+        titleCell.textContent = question.title;
+        
+        const typeCell = document.createElement('td');
+        const typeMap = {
+          'standard': 'QCM',
+          'text': 'Texte',
+          'number': 'Numérique',
+          'comment': 'Commentaire'
+        };
+        typeCell.textContent = typeMap[question.type] || question.type;
+        
+        const pointsCell = document.createElement('td');
+        pointsCell.textContent = question.points;
+        
+        const orderCell = document.createElement('td');
+        orderCell.textContent = question.order;
+        
+        const actionsCell = document.createElement('td');
+        actionsCell.className = 'table-actions';
+        actionsCell.innerHTML = `
+          <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${question.id}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${question.id}">
+            <i class="fas fa-trash"></i>
+          </button>
+          <a href="admin-qrcodes.html?q=${question.id}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-qrcode"></i>
+          </a>
+        `;
+        
+        row.appendChild(idCell);
+        row.appendChild(titleCell);
+        row.appendChild(typeCell);
+        row.appendChild(pointsCell);
+        row.appendChild(orderCell);
+        row.appendChild(actionsCell);
+        
+        tableBody.appendChild(row);
+      });
+      
+      // Ajouter les gestionnaires d'événements
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          editQuestion(id);
+        });
+      });
+      
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-id');
+          showDeleteModal(id);
+        });
+      });
+    }
+    
+    // Ajouter une question
+    function addQuestion() {
+      currentQuestionId = null;
+      
+      // Réinitialiser le formulaire
+      document.getElementById('question-form').reset();
+      document.getElementById('question-id').value = `Q${questions.length + 1}`;
+      document.getElementById('question-order').value = questions.length + 1;
+      document.getElementById('options-list').innerHTML = '';
+      
+      // Ajouter des options par défaut pour les QCM
+      for (let i = 0; i < 4; i++) {
+        addOptionField();
+      }
+      
+      // Mettre à jour le titre du modal
+      document.getElementById('question-modal-title').textContent = 'Ajouter une question';
+      
+      // Afficher le modal
+      const modal = new bootstrap.Modal(document.getElementById('question-modal'));
+      modal.show();
+    }
+    
+    // Éditer une question
+    function editQuestion(id) {
+      const question = questions.find(q => q.id === id);
+      if (!question) {
+        showToast('Question non trouvée', 'danger');
+        return;
+      }
+      
+      currentQuestionId = id;
+      
+      // Remplir le formulaire
+      document.getElementById('question-id').value = question.id;
+      document.getElementById('question-type').value = question.type;
+      document.getElementById('question-title').value = question.title;
+      document.getElementById('question-description').value = question.description;
+      document.getElementById('question-points').value = question.points;
+      document.getElementById('question-order').value = question.order || 0;
+      document.getElementById('question-correct-answer').value = question.correctAnswer || '';
+      document.getElementById('question-is-end-game').checked = question.isEndGame || false;
+      
+      // Gérer les options
+      document.getElementById('options-list').innerHTML = '';
+      if (question.type === 'standard' && question.options && question.options.length) {
+        question.options.forEach(option => {
+          addOptionField(option);
+        });
+      }
+      
+      // Mettre à jour l'affichage en fonction du type
+      updateFormByType(question.type);
+      
+      // Mettre à jour le titre du modal
+      document.getElementById('question-modal-title').textContent = 'Modifier la question';
+      
+      // Afficher le modal
+      const modal = new bootstrap.Modal(document.getElementById('question-modal'));
+      modal.show();
+    }
+    
+    // Ajouter un champ d'option
+    function addOptionField(value = '') {
+      const optionsList = document.getElementById('options-list');
+      const index = optionsList.children.length;
+      
+      const optionRow = document.createElement('div');
+      optionRow.className = 'input-group mb-2';
+      
+      optionRow.innerHTML = `
+        <input type="text" class="form-control option-input" value="${value}" placeholder="Option ${index + 1}">
+        <button type="button" class="btn btn-outline-danger remove-option-btn">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      optionsList.appendChild(optionRow);
+      
+      // Ajouter le gestionnaire pour supprimer l'option
+      optionRow.querySelector('.remove-option-btn').addEventListener('click', () => {
+        optionsList.removeChild(optionRow);
+      });
+    }
+    
+    // Mettre à jour le formulaire en fonction du type
+    function updateFormByType(type) {
+      const optionsContainer = document.getElementById('options-container');
+      const correctAnswerContainer = document.getElementById('correct-answer-container');
+      
+      switch (type) {
+        case 'standard':
+          optionsContainer.style.display = 'block';
+          correctAnswerContainer.style.display = 'block';
+          break;
+        case 'text':
+        case 'number':
+          optionsContainer.style.display = 'none';
+          correctAnswerContainer.style.display = 'block';
+          break;
+        case 'comment':
+          optionsContainer.style.display = 'none';
+          correctAnswerContainer.style.display = 'none';
+          break;
+      }
+    }
+    
+    // Sauvegarder une question
+    async function saveQuestion() {
+      try {
+        // Récupérer les valeurs du formulaire
+        const id = document.getElementById('question-id').value.trim();
+        const type = document.getElementById('question-type').value;
+        const title = document.getElementById('question-title').value.trim();
+        const description = document.getElementById('question-description').value.trim();
+        const points = parseInt(document.getElementById('question-points').value) || 0;
+        const order = parseInt(document.getElementById('question-order').value) || 1;
+        const correctAnswer = document.getElementById('question-correct-answer').value.trim();
+        const isEndGame = document.getElementById('question-is-end-game').checked;
+        
+        // Valider les champs requis
+        if (!id || !title || !description) {
+          showToast('Veuillez remplir tous les champs obligatoires', 'warning');
+          return;
+        }
+        
+        // Récupérer les options pour les QCM
+        let options = [];
+        if (type === 'standard') {
+          const optionInputs = document.querySelectorAll('.option-input');
+          options = Array.from(optionInputs).map(input => input.value.trim());
+          
+          // Valider les options
+          if (options.some(opt => !opt)) {
+            showToast('Veuillez remplir toutes les options', 'warning');
+            return;
+          }
+          
+          // Valider la réponse correcte
+          if (!correctAnswer) {
+            showToast('Veuillez spécifier une réponse correcte', 'warning');
+            return;
+          }
+          
+          if (!options.includes(correctAnswer)) {
+            showToast('La réponse correcte doit être l\'une des options', 'warning');
+            return;
+          }
+        }
+        
+        // Créer l'objet question
+        const question = {
+          id,
+          type,
+          title,
+          description,
+          points,
+          order,
+          options,
+          correctAnswer: type !== 'comment' ? correctAnswer : '',
+          isEndGame
+        };
+        
+        // Déterminer si c'est une création ou une mise à jour
+        const isUpdate = currentQuestionId !== null;
+        
+        // Mettre à jour les questions
+        if (isUpdate) {
+          const index = questions.findIndex(q => q.id === currentQuestionId);
+          if (index !== -1) {
+            questions[index] = question;
+          } else {
+            questions.push(question);
+          }
+        } else {
+          // Vérifier si l'ID existe déjà
+          if (questions.some(q => q.id === id)) {
+            showToast('Cet ID de question existe déjà', 'warning');
+            return;
+          }
+          
+          questions.push(question);
+        }
+        
+        // Trier les questions par ordre
+        questions.sort((a, b) => a.order - b.order);
+        
+        // Envoyer les questions au serveur
+        const response = await fetch('/api/questions/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ questions })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        // Fermer le modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('question-modal'));
+        modal.hide();
+        
+        // Recharger les questions
+        loadQuestions();
+        
+        showToast(`Question ${isUpdate ? 'modifiée' : 'ajoutée'} avec succès`, 'success');
+      } catch (error) {
+        console.error('Erreur lors de la sauvegarde de la question:', error);
+        showToast('Erreur lors de la sauvegarde de la question', 'danger');
+      }
+    }
+    
+    // Afficher le modal de confirmation de suppression
+    function showDeleteModal(id) {
+      currentQuestionId = id;
+      const modal = new bootstrap.Modal(document.getElementById('delete-modal'));
+      modal.show();
+    }
+    
+    // Supprimer une question
+    async function deleteQuestion() {
+      try {
+        if (!currentQuestionId) {
+          return;
+        }
+        
+        // Supprimer la question du tableau
+        questions = questions.filter(q => q.id !== currentQuestionId);
+        
+        // Envoyer les questions mises à jour au serveur
+        const response = await fetch('/api/questions/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ questions })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        // Fermer le modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('delete-modal'));
+        modal.hide();
+        
+        // Recharger les questions
+        loadQuestions();
+        
+        showToast('Question supprimée avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la question:', error);
+        showToast('Erreur lors de la suppression de la question', 'danger');
+      }
+    }
+    
+    // Importer des questions
+    async function importQuestions() {
+      const fileInput = document.getElementById('import-file');
+      const replaceExisting = document.getElementById('replace-existing').checked;
+      
+      if (!fileInput.files || !fileInput.files[0]) {
+        showToast('Veuillez sélectionner un fichier', 'warning');
+        return;
+      }
+      
+      try {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = async (e) => {
+          try {
+            const content = e.target.result;
+            const importedData = JSON.parse(content);
+            
+            if (!importedData.questions || !Array.isArray(importedData.questions)) {
+              showToast('Format de fichier invalide', 'danger');
+              return;
+            }
+            
+            // Mettre à jour les questions
+            if (replaceExisting) {
+              questions = importedData.questions;
+            } else {
+              // Fusionner les questions en évitant les doublons
+              const existingIds = questions.map(q => q.id);
+              const newQuestions = importedData.questions.filter(q => !existingIds.includes(q.id));
+              questions = [...questions, ...newQuestions];
+            }
+            
+            // Trier les questions par ordre
+            questions.sort((a, b) => a.order - b.order);
+            
+            // Envoyer les questions au serveur
+            const response = await fetch('/api/questions/import', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ questions })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            // Recharger les questions
+            loadQuestions();
+            
+            showToast('Questions importées avec succès', 'success');
+          } catch (error) {
+            console.error('Erreur lors de l\'importation des questions:', error);
+            showToast('Erreur lors de l\'importation des questions', 'danger');
+          }
+        };
+        
+        reader.readAsText(file);
+      } catch (error) {
+        console.error('Erreur lors de la lecture du fichier:', error);
+        showToast('Erreur lors de la lecture du fichier', 'danger');
+      }
+    }
+    
+    // Exporter les questions en JSON
+    function exportQuestionsJSON() {
+      if (!questions.length) {
+        showToast('Aucune question à exporter', 'warning');
+        return;
+      }
+      
+      const data = JSON.stringify({ questions }, null, 2);
+      downloadFile(data, 'questions.json', 'application/json');
+    }
+    
+    // Exporter les questions en CSV
+    function exportQuestionsCSV() {
+      if (!questions.length) {
+        showToast('Aucune question à exporter', 'warning');
+        return;
+      }
+      
+      // Créer l'en-tête CSV
+      let csv = 'ID,Type,Titre,Description,Points,Ordre,Options,Réponse Correcte\n';
+      
+      // Ajouter les données
+      questions.forEach(question => {
+        const options = question.options ? `"${question.options.join(';')}"` : '';
+        csv += `${question.id},${question.type},"${question.title.replace(/"/g, '""')}","${question.description.replace(/"/g, '""')}",${question.points},${question.order},${options},"${question.correctAnswer || ''}"\n`;
+      });
+      
+      downloadFile(csv, 'questions.csv', 'text/csv');
+    }
+    
+    // Télécharger un fichier
+    function downloadFile(content, fileName, contentType) {
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

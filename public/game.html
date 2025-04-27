@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - DJ Zone</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 20px;
+      padding-bottom: 40px;
+      background-color: #f8f9fa;
+    }
+    .game-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .question-card {
+      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+    .question-card:hover {
+      transform: translateY(-5px);
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .number-input {
+      max-width: 200px;
+    }
+    .comment-textarea {
+      min-height: 150px;
+    }
+    .game-header {
+      background-color: #343a40;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+    }
+    .progress {
+      height: 20px;
+      margin-bottom: 10px;
+    }
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+    .progress-bar {
+      transition: width 0.5s ease;
+    }
+    .option-btn {
+      margin-bottom: 10px;
+      text-align: left;
+      padding: 12px 15px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    .option-btn:hover {
+      background-color: #e9ecef;
+    }
+    .option-btn.selected {
+      background-color: #0d6efd;
+      color: white;
+    }
+    .result-card {
+      text-align: center;
+      padding: 30px;
+    }
+    .score-display {
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 20px 0;
+    }
+    .player-info {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container game-container">
+    <!-- Écran d'accueil -->
+    <div id="welcome-screen">
+      <div class="game-header text-center">
+        <h1>QR Game - DJ Zone</h1>
+        <p class="lead">Bienvenue dans le jeu de questions-réponses !</p>
+      </div>
+      
+      <div class="player-info">
+        <h3 class="mb-3">Informations du joueur</h3>
+        <div class="mb-3">
+          <label for="player-name" class="form-label">Votre nom</label>
+          <input type="text" class="form-control" id="player-name" placeholder="Entrez votre nom">
+        </div>
+        <div class="mb-3">
+          <label for="player-email" class="form-label">Votre email (optionnel)</label>
+          <input type="email" class="form-control" id="player-email" placeholder="Entrez votre email">
+        </div>
+        <div class="d-grid gap-2">
+          <button id="start-game-btn" class="btn btn-primary btn-lg">
+            <i class="fas fa-play me-2"></i> Commencer le jeu
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Écran de jeu -->
+    <div id="game-screen" class="hidden">
+      <div class="game-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h2 id="question-counter">Question 1/7</h2>
+          <div>
+            <span id="points-display" class="badge bg-success fs-6">Points: 0</span>
+          </div>
+        </div>
+        <div class="progress-info">
+          <span id="progress-info-start">0/7 questions complétées</span>
+          <span id="progress-info-end">Objectif: 7 questions</span>
+        </div>
+        <div class="progress">
+          <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </div>
+      
+      <div id="current-question" class="question-card card">
+        <!-- Le contenu de la question sera inséré ici -->
+      </div>
+      
+      <div class="d-flex justify-content-between mt-3">
+        <button id="prev-question-btn" class="btn btn-outline-secondary" disabled>
+          <i class="fas fa-arrow-left me-2"></i> Précédent
+        </button>
+        <button id="next-question-btn" class="btn btn-primary">
+          Suivant <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Écran de résultat -->
+    <div id="result-screen" class="hidden">
+      <div class="game-header text-center">
+        <h1>Résultats</h1>
+        <p class="lead">Merci d'avoir participé au jeu !</p>
+      </div>
+      
+      <div class="card result-card">
+        <h2>Votre score</h2>
+        <div class="score-display" id="final-score">0/5</div>
+        <p id="score-message">Bien joué !</p>
+        
+        <div class="mt-4">
+          <h4>Question subsidiaire</h4>
+          <p id="subsidiary-question">Combien de personnes vont participer au jeu ?</p>
+          <div class="mb-3">
+            <input type="number" class="form-control mx-auto number-input" id="subsidiary-answer" min="0" placeholder="Votre réponse">
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <h4>Commentaires</h4>
+          <p>Partagez votre expérience avec nous !</p>
+          <div class="mb-3">
+            <textarea class="form-control comment-textarea" id="final-comment" rows="4" placeholder="Vos impressions sur le jeu..."></textarea>
+          </div>
+        </div>
+        
+        <div class="d-grid gap-2 col-6 mx-auto mt-4">
+          <button id="submit-results-btn" class="btn btn-success btn-lg">
+            <i class="fas fa-paper-plane me-2"></i> Envoyer mes résultats
+          </button>
+          <button id="restart-game-btn" class="btn btn-outline-primary">
+            <i class="fas fa-redo me-2"></i> Recommencer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast container -->
+  <div class="toast-container"></div>
+  
+  <!-- Templates pour les différents types de questions -->
+  <template id="standard-question-template">
+    <div class="card-body">
+      <h3 class="card-title question-title mb-3"></h3>
+      <p class="question-description mb-4"></p>
+      <div class="options-container d-grid gap-2">
+        <!-- Les options seront ajoutées ici -->
+      </div>
+    </div>
+  </template>
+  
+  <template id="text-question-template">
+    <div class="card-body">
+      <h3 class="card-title question-title mb-3"></h3>
+      <p class="question-description mb-4"></p>
+      <div class="mb-3">
+        <textarea class="form-control text-response" rows="3"></textarea>
+      </div>
+    </div>
+  </template>
+  
+  <template id="number-question-template">
+    <div class="card-body">
+      <h3 class="card-title question-title mb-3"></h3>
+      <p class="question-description mb-4"></p>
+      <div class="mb-3">
+        <input type="number" class="form-control number-input number-response" min="0" step="1">
+        <div class="form-text">Entrez un nombre entre <span class="min-value">0</span> et <span class="max-value">1000</span></div>
+      </div>
+    </div>
+  </template>
+  
+  <template id="comment-question-template">
+    <div class="card-body">
+      <h3 class="card-title question-title mb-3"></h3>
+      <p class="question-description mb-4"></p>
+      <div class="mb-3">
+        <textarea class="form-control comment-textarea comment-response" rows="5" placeholder="Partagez votre expérience..."></textarea>
+      </div>
+    </div>
+  </template>
+  
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Variables globales
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let playerAnswers = {};
+    let playerScore = 0;
+    let playerId = generatePlayerId();
+    let playerName = '';
+    
+    // Nouvelles variables pour suivre la progression
+    let answeredQuestions = new Set();
+    let totalQuestions = 0;
+    
+    // Éléments DOM
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const prevQuestionBtn = document.getElementById('prev-question-btn');
+    const nextQuestionBtn = document.getElementById('next-question-btn');
+    const currentQuestionContainer = document.getElementById('current-question');
+    const questionCounter = document.getElementById('question-counter');
+    const progressBar = document.getElementById('progress-bar');
+    const pointsDisplay = document.getElementById('points-display');
+    const finalScore = document.getElementById('final-score');
+    const scoreMessage = document.getElementById('score-message');
+    const subsidiaryQuestion = document.getElementById('subsidiary-question');
+    const subsidiaryAnswer = document.getElementById('subsidiary-answer');
+    const finalComment = document.getElementById('final-comment');
+    const submitResultsBtn = document.getElementById('submit-results-btn');
+    const restartGameBtn = document.getElementById('restart-game-btn');
+    
+    // Templates
+    const standardQuestionTemplate = document.getElementById('standard-question-template');
+    const textQuestionTemplate = document.getElementById('text-question-template');
+    const numberQuestionTemplate = document.getElementById('number-question-template');
+    const commentQuestionTemplate = document.getElementById('comment-question-template');
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        console.log('Initialisation du jeu...');
+        await loadQuestions();
+        setupEventListeners();
+        
+        // Vérifier si un ID de question est présent dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const questionId = urlParams.get('q');
+        
+        if (questionId) {
+          console.log(`QR code détecté avec l'ID de question: ${questionId}`);
+          // Si un ID de question est présent, préparer le jeu pour démarrer avec cette question
+          const questionIndex = questions.findIndex(q => q.id === questionId);
+          
+          if (questionIndex !== -1) {
+            console.log(`Question trouvée à l'index ${questionIndex}: ${questions[questionIndex].title}`);
+            // Mettre en évidence que le jeu démarre à partir d'un QR code
+            const startMessage = document.createElement('div');
+            startMessage.className = 'alert alert-info mb-3';
+            startMessage.innerHTML = `
+              <i class="fas fa-qrcode me-2"></i>
+              <strong>QR Code scanné !</strong> Vous allez commencer par la question "${questions[questionIndex].title}".
+            `;
+            welcomeScreen.querySelector('.player-info').prepend(startMessage);
+            
+            // Stocker l'index de la question pour démarrer avec celle-ci
+            currentQuestionIndex = questionIndex;
+          } else {
+            console.warn(`Question avec l'ID ${questionId} non trouvée`);
+            showToast(`Question avec l'ID ${questionId} non trouvée. Le jeu commencera par la première question.`, 'warning');
+          }
+        } else {
+          console.log('Aucun QR code détecté, démarrage normal du jeu');
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'initialisation du jeu:', error);
+        showToast('Erreur lors du chargement du jeu. Veuillez réessayer.', 'danger');
+      }
+    });
+    
+    // Charger les questions depuis l'API
+    async function loadQuestions() {
+      try {
+        const response = await fetch('/api/questions');
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        questions = data.questions || [];
+        totalQuestions = questions.length;
+        
+        // Mettre à jour les informations de progression
+        document.getElementById('progress-info-start').textContent = `0/${totalQuestions} questions complétées`;
+        document.getElementById('progress-info-end').textContent = `Objectif: ${totalQuestions} questions`;
+        
+        // Vérifier si des réponses sont déjà stockées localement
+        const savedAnswers = localStorage.getItem('qr_game_answers');
+        if (savedAnswers) {
+          try {
+            const parsedAnswers = JSON.parse(savedAnswers);
+            if (parsedAnswers && typeof parsedAnswers === 'object') {
+              playerAnswers = parsedAnswers;
+              
+              // Mettre à jour l'ensemble des questions répondues
+              answeredQuestions = new Set(Object.keys(playerAnswers));
+              
+              // Mettre à jour la barre de progression
+              updateProgressBar();
+            }
+          } catch (e) {
+            console.error('Erreur lors de la récupération des réponses sauvegardées:', e);
+          }
+        }
+        
+        return questions;
+      } catch (error) {
+        console.error('Erreur lors du chargement des questions:', error);
+        throw error;
+      }
+    }
+    
+    // Configurer les écouteurs d'événements
+    function setupEventListeners() {
+      startGameBtn.addEventListener('click', startGame);
+      prevQuestionBtn.addEventListener('click', showPreviousQuestion);
+      nextQuestionBtn.addEventListener('click', showNextQuestion);
+      submitResultsBtn.addEventListener('click', submitResults);
+      restartGameBtn.addEventListener('click', restartGame);
+    }
+    
+    // Démarrer le jeu
+    function startGame() {
+      const playerName = document.getElementById('player-name').value.trim();
+      const playerEmail = document.getElementById('player-email').value.trim();
+      
+      if (!playerName) {
+        showToast('Veuillez entrer votre nom pour commencer', 'warning');
+        return;
+      }
+      
+      // Enregistrer les informations du joueur
+      playerData.name = playerName;
+      playerData.email = playerEmail;
+      playerData.startTime = new Date().toISOString();
+      
+      // Afficher l'écran de jeu
+      welcomeScreen.classList.add('hidden');
+      gameScreen.classList.remove('hidden');
+      
+      // Afficher la question (celle du QR code ou la première)
+      showQuestion(currentQuestionIndex);
+    }
+    
+    // Afficher une question spécifique
+    function showQuestion(index) {
+      if (index < 0 || index >= questions.length) {
+        return;
+      }
+      
+      currentQuestionIndex = index;
+      const question = questions[index];
+      
+      // Mettre à jour le compteur de questions et la barre de progression
+      questionCounter.textContent = `Question ${index + 1}/${questions.length}`;
+      progressBar.style.width = `${((index + 1) / questions.length) * 100}%`;
+      
+      // Activer/désactiver les boutons de navigation
+      prevQuestionBtn.disabled = index === 0;
+      
+      // Changer le texte du bouton suivant pour la dernière question
+      if (index === questions.length - 1) {
+        nextQuestionBtn.innerHTML = 'Terminer <i class="fas fa-check ms-2"></i>';
+      } else {
+        nextQuestionBtn.innerHTML = 'Suivant <i class="fas fa-arrow-right ms-2"></i>';
+      }
+      
+      // Afficher la question selon son type
+      currentQuestionContainer.innerHTML = '';
+      let questionElement;
+      
+      switch (question.type) {
+        case 'standard':
+          questionElement = createStandardQuestion(question);
+          break;
+        case 'text':
+          questionElement = createTextQuestion(question);
+          break;
+        case 'number':
+          questionElement = createNumberQuestion(question);
+          break;
+        case 'comment':
+          questionElement = createCommentQuestion(question);
+          break;
+        default:
+          questionElement = createStandardQuestion(question);
+      }
+      
+      currentQuestionContainer.appendChild(questionElement);
+      
+      // Restaurer la réponse précédente si elle existe
+      restorePreviousAnswer(question.id);
+    }
+    
+    // Créer une question standard (QCM)
+    function createStandardQuestion(question) {
+      const template = standardQuestionTemplate.content.cloneNode(true);
+      
+      template.querySelector('.question-title').textContent = question.title;
+      template.querySelector('.question-description').textContent = question.description;
+      
+      const optionsContainer = template.querySelector('.options-container');
+      
+      if (question.options && question.options.length) {
+        question.options.forEach((option, index) => {
+          const optionBtn = document.createElement('button');
+          optionBtn.className = 'btn btn-outline-secondary option-btn';
+          optionBtn.textContent = option;
+          optionBtn.dataset.value = option;
+          
+          optionBtn.addEventListener('click', () => {
+            // Désélectionner toutes les options
+            optionsContainer.querySelectorAll('.option-btn').forEach(btn => {
+              btn.classList.remove('selected');
+            });
+            
+            // Sélectionner cette option
+            optionBtn.classList.add('selected');
+            
+            // Enregistrer la réponse
+            saveAnswer(question.id, option);
+          });
+          
+          optionsContainer.appendChild(optionBtn);
+        });
+      }
+      
+      return template;
+    }
+    
+    // Créer une question à réponse textuelle
+    function createTextQuestion(question) {
+      const template = textQuestionTemplate.content.cloneNode(true);
+      
+      template.querySelector('.question-title').textContent = question.title;
+      template.querySelector('.question-description').textContent = question.description;
+      
+      const textInput = template.querySelector('.text-response');
+      textInput.addEventListener('input', () => {
+        saveAnswer(question.id, textInput.value);
+      });
+      
+      return template;
+    }
+    
+    // Créer une question numérique
+    function createNumberQuestion(question) {
+      const template = numberQuestionTemplate.content.cloneNode(true);
+      
+      template.querySelector('.question-title').textContent = question.title;
+      template.querySelector('.question-description').textContent = question.description;
+      
+      const numberInput = template.querySelector('.number-response');
+      const minValueSpan = template.querySelector('.min-value');
+      const maxValueSpan = template.querySelector('.max-value');
+      
+      // Définir les limites
+      const minValue = question.minValue !== undefined ? question.minValue : 0;
+      const maxValue = question.maxValue !== undefined ? question.maxValue : 1000;
+      
+      numberInput.min = minValue;
+      numberInput.max = maxValue;
+      minValueSpan.textContent = minValue;
+      maxValueSpan.textContent = maxValue;
+      
+      numberInput.addEventListener('input', () => {
+        saveAnswer(question.id, numberInput.value);
+      });
+      
+      return template;
+    }
+    
+    // Créer un champ de commentaire
+    function createCommentQuestion(question) {
+      const template = commentQuestionTemplate.content.cloneNode(true);
+      
+      template.querySelector('.question-title').textContent = question.title;
+      template.querySelector('.question-description').textContent = question.description;
+      
+      const commentInput = template.querySelector('.comment-response');
+      commentInput.addEventListener('input', () => {
+        saveAnswer(question.id, commentInput.value);
+      });
+      
+      return template;
+    }
+    
+    // Enregistrer la réponse à une question
+    function saveAnswer(questionId, answer) {
+      playerAnswers[questionId] = answer;
+      localStorage.setItem('qr_game_answers', JSON.stringify(playerAnswers));
+      
+      // Ajouter cette question à l'ensemble des questions répondues
+      answeredQuestions.add(questionId);
+      
+      // Mettre à jour la barre de progression
+      updateProgressBar();
+      
+      // Calculer le score si c'est une question standard
+      const question = questions.find(q => q.id === questionId);
+      if (question && question.type === 'standard' && answer === question.correctAnswer) {
+        playerScore += question.points || 1;
+        document.getElementById('points-display').textContent = `Points: ${playerScore}`;
+      }
+    }
+    
+    // Restaurer une réponse précédente
+    function restorePreviousAnswer(questionId) {
+      const answer = playerAnswers[questionId];
+      if (!answer) return;
+      
+      const question = questions.find(q => q.id === questionId);
+      if (!question) return;
+      
+      switch (question.type) {
+        case 'standard':
+          const options = currentQuestionContainer.querySelectorAll('.option-btn');
+          options.forEach(option => {
+            if (option.dataset.value === answer) {
+              option.classList.add('selected');
+            }
+          });
+          break;
+        case 'text':
+          const textInput = currentQuestionContainer.querySelector('.text-response');
+          if (textInput) textInput.value = answer;
+          break;
+        case 'number':
+          const numberInput = currentQuestionContainer.querySelector('.number-response');
+          if (numberInput) numberInput.value = answer;
+          break;
+        case 'comment':
+          const commentInput = currentQuestionContainer.querySelector('.comment-response');
+          if (commentInput) commentInput.value = answer;
+          break;
+      }
+    }
+    
+    // Afficher la question précédente
+    function showPreviousQuestion() {
+      if (currentQuestionIndex > 0) {
+        showQuestion(currentQuestionIndex - 1);
+      }
+    }
+    
+    // Afficher la question suivante ou terminer le jeu
+    function showNextQuestion() {
+      // Vérifier si la question actuelle a une réponse
+      const currentQuestion = questions[currentQuestionIndex];
+      if (currentQuestion && currentQuestion.type === 'standard' && !playerAnswers[currentQuestion.id]) {
+        showToast('Veuillez répondre à la question avant de continuer', 'warning');
+        return;
+      }
+      
+      // Si c'est la dernière question, terminer le jeu
+      if (currentQuestionIndex === questions.length - 1) {
+        finishGame();
+        return;
+      }
+      
+      // Vérifier si la question suivante est marquée comme fin de jeu
+      const nextQuestion = questions[currentQuestionIndex + 1];
+      if (nextQuestion && nextQuestion.isEndGame) {
+        // Afficher la dernière question
+        showQuestion(currentQuestionIndex + 1);
+        
+        // Changer le texte du bouton pour indiquer que c'est la fin
+        nextQuestionBtn.innerHTML = 'Terminer <i class="fas fa-check ms-2"></i>';
+        nextQuestionBtn.classList.remove('btn-primary');
+        nextQuestionBtn.classList.add('btn-success');
+      } else {
+        // Afficher la question suivante normalement
+        showQuestion(currentQuestionIndex + 1);
+      }
+    }
+    
+    // Terminer le jeu et afficher les résultats
+    function finishGame() {
+      playerData.endTime = new Date().toISOString();
+      
+      // Calculer le score final
+      const totalQuestions = questions.filter(q => q.type === 'standard').length;
+      const correctAnswers = Object.keys(playerAnswers).filter(key => {
+        if (key.includes('_points')) return false;
+        const question = questions.find(q => q.id === key);
+        return question && question.type === 'standard' && playerAnswers[key] === question.correctAnswer;
+      }).length;
+      
+      // Afficher le score
+      finalScore.textContent = `${correctAnswers}/${totalQuestions}`;
+      
+      // Message personnalisé selon le score
+      if (correctAnswers === totalQuestions) {
+        scoreMessage.textContent = 'Parfait ! Vous avez répondu correctement à toutes les questions !';
+      } else if (correctAnswers >= totalQuestions * 0.7) {
+        scoreMessage.textContent = 'Très bien ! Vous avez un excellent score !';
+      } else if (correctAnswers >= totalQuestions * 0.5) {
+        scoreMessage.textContent = 'Bien joué ! Vous avez un bon score.';
+      } else {
+        scoreMessage.textContent = 'Continuez à apprendre et réessayez !';
+      }
+      
+      // Afficher l'écran de résultat
+      gameScreen.classList.add('hidden');
+      resultScreen.classList.remove('hidden');
+    }
+    
+    // Soumettre les résultats
+    async function submitResults() {
+      const subsidiaryValue = subsidiaryAnswer.value.trim();
+      const commentValue = finalComment.value.trim();
+      
+      if (!subsidiaryValue) {
+        showToast('Veuillez répondre à la question subsidiaire', 'warning');
+        return;
+      }
+      
+      // Trouver la question subsidiaire
+      const subsidiaryQuestion = questions.find(q => q.title.includes('subsidiaire'));
+      
+      // Enregistrer la réponse à la question subsidiaire
+      if (subsidiaryQuestion) {
+        try {
+          await submitAnswer(subsidiaryQuestion.id, subsidiaryValue);
+        } catch (error) {
+          console.error('Erreur lors de l\'enregistrement de la question subsidiaire:', error);
+        }
+      }
+      
+      // Enregistrer le commentaire final
+      if (commentValue) {
+        // Créer une "question" de commentaire si elle n'existe pas
+        const commentQuestionId = 'COMMENT_FINAL';
+        try {
+          await submitAnswer(commentQuestionId, commentValue, true);
+        } catch (error) {
+          console.error('Erreur lors de l\'enregistrement du commentaire:', error);
+        }
+      }
+      
+      showToast('Vos résultats ont été enregistrés avec succès !', 'success');
+      
+      // Désactiver le bouton d'envoi
+      submitResultsBtn.disabled = true;
+      submitResultsBtn.innerHTML = '<i class="fas fa-check me-2"></i> Résultats envoyés';
+    }
+    
+    // Soumettre une réponse à l'API
+    async function submitAnswer(questionId, response, isComment = false) {
+      try {
+        const answerData = {
+          playerId,
+          playerName,
+          questionId,
+          response,
+          timestamp: new Date().toISOString()
+        };
+        
+        const apiResponse = await fetch('/api/responses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(answerData)
+        });
+        
+        if (!apiResponse.ok) {
+          throw new Error(`Erreur HTTP: ${apiResponse.status}`);
+        }
+        
+        // Ajouter cette question à l'ensemble des questions répondues
+        answeredQuestions.add(questionId);
+        
+        // Mettre à jour la barre de progression
+        updateProgressBar();
+        
+        return true;
+      } catch (error) {
+        console.error('Erreur lors de la soumission de la réponse:', error);
+        return false;
+      }
+    }
+    
+    // Redémarrer le jeu
+    function restartGame() {
+      // Réinitialiser les variables
+      currentQuestionIndex = 0;
+      playerAnswers = {};
+      playerScore = 0;
+      playerId = generatePlayerId();
+      playerName = '';
+      
+      // Réinitialiser l'interface
+      pointsDisplay.textContent = 'Points: 0';
+      subsidiaryAnswer.value = '';
+      finalComment.value = '';
+      submitResultsBtn.disabled = false;
+      submitResultsBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Envoyer mes résultats';
+      
+      // Revenir à l'écran d'accueil
+      resultScreen.classList.add('hidden');
+      welcomeScreen.classList.remove('hidden');
+    }
+    
+    // Générer un ID de joueur unique
+    function generatePlayerId() {
+      return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+    
+    // Mettre à jour la barre de progression
+    function updateProgressBar() {
+      const progressBar = document.getElementById('progress-bar');
+      const progressInfoStart = document.getElementById('progress-info-start');
+      
+      const completedCount = answeredQuestions.size;
+      const progressPercentage = (completedCount / totalQuestions) * 100;
+      
+      progressBar.style.width = `${progressPercentage}%`;
+      progressBar.setAttribute('aria-valuenow', progressPercentage);
+      
+      // Mettre à jour le texte d'information
+      progressInfoStart.textContent = `${completedCount}/${totalQuestions} questions complétées`;
+      
+      // Changer la couleur en fonction de la progression
+      if (progressPercentage < 33) {
+        progressBar.className = 'progress-bar bg-danger';
+      } else if (progressPercentage < 66) {
+        progressBar.className = 'progress-bar bg-warning';
+      } else if (progressPercentage < 100) {
+        progressBar.className = 'progress-bar bg-info';
+      } else {
+        progressBar.className = 'progress-bar bg-success';
+      }
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>

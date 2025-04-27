@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Administration</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-top: 56px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      max-width: 800px;
+      width: 100%;
+      margin-bottom: 20px;
+      transition: transform 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
+    .module-icon {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      color: #0d6efd;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">QR Game Admin</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" href="admin-index.html">Accueil</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-dashboard.html">Tableau de bord</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-questions.html">Questions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-qrcodes.html">QR Codes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin-settings.html">Paramètres</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">
+              <i class="fas fa-home"></i> Retour au site
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container content">
+    <div class="text-center mb-5">
+      <h1 class="display-4 mb-3">Administration QR Game</h1>
+      <p class="lead">Gérez vos questions, générez des QR codes et suivez les statistiques de jeu</p>
+    </div>
+    
+    <div class="row justify-content-center">
+      <div class="col-md-4">
+        <div class="card text-center h-100">
+          <div class="card-body">
+            <i class="fas fa-tachometer-alt module-icon"></i>
+            <h5 class="card-title">Tableau de bord</h5>
+            <p class="card-text">Visualisez les statistiques et l'activité récente des joueurs</p>
+            <a href="admin-dashboard.html" class="btn btn-primary">
+              <i class="fas fa-chart-bar"></i> Accéder
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card text-center h-100">
+          <div class="card-body">
+            <i class="fas fa-question-circle module-icon"></i>
+            <h5 class="card-title">Questions</h5>
+            <p class="card-text">Créez et gérez les questions du jeu</p>
+            <a href="admin-questions.html" class="btn btn-primary">
+              <i class="fas fa-edit"></i> Gérer
+            </a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card text-center h-100">
+          <div class="card-body">
+            <i class="fas fa-qrcode module-icon"></i>
+            <h5 class="card-title">QR Codes</h5>
+            <p class="card-text">Générez et imprimez les QR codes pour chaque question</p>
+            <a href="admin-qrcodes.html" class="btn btn-primary">
+              <i class="fas fa-print"></i> Générer
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Statut du système</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between mb-3">
+              <span>Connexion à l'API:</span>
+              <span id="api-status">Vérification...</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+              <span>Questions disponibles:</span>
+              <span id="questions-status">Vérification...</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Réponses enregistrées:</span>
+              <span id="responses-status">Vérification...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div class="toast-container"></div>
+
+  <!-- Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+      checkSystemStatus();
+    });
+    
+    // Vérifier le statut du système
+    async function checkSystemStatus() {
+      // Vérifier la connexion à l'API
+      try {
+        const apiResponse = await fetch('/api/questions');
+        if (apiResponse.ok) {
+          document.getElementById('api-status').innerHTML = '<span class="badge bg-success">Connecté</span>';
+          
+          // Vérifier les questions
+          const questionsData = await apiResponse.json();
+          const questions = questionsData.questions || [];
+          
+          if (questions.length > 0) {
+            document.getElementById('questions-status').innerHTML = `<span class="badge bg-success">${questions.length} questions</span>`;
+          } else {
+            document.getElementById('questions-status').innerHTML = '<span class="badge bg-warning">Aucune question</span>';
+          }
+          
+          // Stocker les questions dans le localStorage pour les autres pages
+          localStorage.setItem('qr_game_questions', JSON.stringify(questions));
+        } else {
+          document.getElementById('api-status').innerHTML = '<span class="badge bg-danger">Erreur</span>';
+          document.getElementById('questions-status').innerHTML = '<span class="badge bg-danger">Non disponible</span>';
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification de l\'API:', error);
+        document.getElementById('api-status').innerHTML = '<span class="badge bg-danger">Erreur</span>';
+        document.getElementById('questions-status').innerHTML = '<span class="badge bg-danger">Non disponible</span>';
+      }
+      
+      // Vérifier les réponses
+      try {
+        const statsResponse = await fetch('/api/stats');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          const responsesCount = statsData.totalResponses || 0;
+          
+          if (responsesCount > 0) {
+            document.getElementById('responses-status').innerHTML = `<span class="badge bg-success">${responsesCount} réponses</span>`;
+          } else {
+            document.getElementById('responses-status').innerHTML = '<span class="badge bg-warning">Aucune réponse</span>';
+          }
+        } else {
+          document.getElementById('responses-status').innerHTML = '<span class="badge bg-danger">Non disponible</span>';
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification des statistiques:', error);
+        document.getElementById('responses-status').innerHTML = '<span class="badge bg-danger">Erreur</span>';
+      }
+    }
+    
+    // Afficher un toast
+    function showToast(message, type = 'info') {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastEl = document.createElement('div');
+      toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+      
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">
+            ${message}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      
+      toastContainer.appendChild(toastEl);
+      
+      const toast = new bootstrap.Toast(toastEl, {
+        autohide: true,
+        delay: 5000
+      });
+      
+      toast.show();
+      
+      // Supprimer le toast après qu'il soit caché
+      toastEl.addEventListener('hidden.bs.toast', () => {
+        toastContainer.removeChild(toastEl);
+      });
+    }
+  </script>
+</body>
+</html>
