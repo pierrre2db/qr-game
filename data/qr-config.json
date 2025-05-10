@@ -1,0 +1,10 @@
+{
+  "size": 300,
+  "margin": 10,
+  "color": {
+    "dark": "#4285F4",
+    "light": "#FFFFFF"
+  },
+  "errorCorrectionLevel": "M",
+  "format": "png"
+}

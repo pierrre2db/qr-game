@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Game - Chasse au trésor numérique</title>
+  
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    body {
+      padding-bottom: 40px;
+      background-color: #f8f9fa;
+    }
+    .game-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding-top: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .debug-panel {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 400px;
+      height: 300px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #00ff00;
+      z-index: 9999;
+      font-family: monospace;
+      font-size: 12px;
+      border-top-left-radius: 5px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 10px;
+      background-color: #333;
+      border-bottom: 1px solid #555;
+    }
+    .debug-console {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .debug-entry {
+      margin-bottom: 5px;
+      word-break: break-all;
+    }
+    .debug-timestamp {
+      color: #aaa;
+      margin-right: 5px;
+    }
+    .debug-message {
+      color: #00ff00;
+    }
+    .debug-data {
+      color: #ffcc00;
+      margin-left: 10px;
+    }
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+    .progress {
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container game-container">
+    <!-- Écran d'accueil -->
+    <div id="welcome-screen">
+      <div class="text-center mb-4">
+        <h1>Bienvenue au QR Game!</h1>
+        <p class="lead">Scannez des QR codes, répondez aux questions et gagnez des points!</p>
+      </div>
+      
+      <div class="card mb-4">
+        <div class="card-body">
+          <h3><i class="fas fa-user-plus me-2"></i> Inscription</h3>
+          <form id="player-form">
+            <div class="mb-3">
+              <label for="player-name" class="form-label">Nom</label>
+              <input type="text" class="form-control" id="player-name" placeholder="Votre nom" required>
+            </div>
+            <div class="mb-3">
+              <label for="player-email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="player-email" placeholder="votre.email@exemple.com" required>
+            </div>
+            <div class="mb-3">
+              <label for="player-phone" class="form-label">Téléphone</label>
+              <input type="tel" class="form-control" id="player-phone" placeholder="0123456789">
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-play me-2"></i> Commencer l'aventure
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <div class="alert alert-info" role="alert">
+        <i class="fas fa-info-circle me-2"></i> Préparez votre appareil photo pour scanner les QR codes!
+      </div>
+    </div>
+    
+    <!-- Écran de confirmation -->
+    <div id="confirmation-screen" style="display: none;">
+      <div class="text-center mb-4">
+        <h1>Prêt à jouer!</h1>
+        <p class="lead">Bienvenue <span id="player-name-display">Joueur</span>!</p>
+      </div>
+      
+      <div class="card mb-4">
+        <div class="card-body">
+          <h3><i class="fas fa-check-circle me-2"></i> Inscription confirmée</h3>
+          <p>Vous êtes maintenant inscrit au jeu. Vous pouvez commencer à scanner des QR codes pour répondre aux questions.</p>
+          
+          <div class="d-grid gap-2 mt-4">
+            <button id="start-scanning-btn" class="btn btn-success btn-lg">
+              <i class="fas fa-qrcode me-2"></i> Commencer à scanner
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="alert alert-warning" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i> Assurez-vous d'avoir accès à votre appareil photo!
+      </div>
+    </div>
+    
+    <!-- Écran de jeu -->
+    <div id="game-screen" style="display: none;">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="fas fa-gamepad me-2"></i> QR Game</h2>
+        <div>
+          <button id="burger-menu-btn" class="btn btn-outline-secondary">
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Menu burger -->
+      <div id="burger-menu" class="card mb-3" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title">Menu</h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <a href="#" id="show-questions-btn" class="text-decoration-none">
+                <i class="fas fa-list me-2"></i> Voir les questions
+              </a>
+            </li>
+            <li class="list-group-item">
+              <a href="#" id="restart-game-btn" class="text-decoration-none">
+                <i class="fas fa-redo me-2"></i> Recommencer
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Liste des questions -->
+      <div id="question-list" class="card mb-3" style="display: none;">
+        <div class="card-body">
+          <h5 class="card-title">Questions</h5>
+          <ul class="list-group list-group-flush" id="questions-container">
+            <!-- Les questions seront ajoutées ici dynamiquement -->
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Barre de progression -->
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">Progression</h5>
+          <div class="progress mb-2">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+          </div>
+          <div class="d-flex justify-content-between">
+            <small id="progress-info-start">0 questions répondues</small>
+            <small id="progress-info-end">sur 0 questions</small>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Question actuelle -->
+      <div class="card mb-3" id="current-question">
+        <!-- Le contenu de la question sera injecté ici -->
+      </div>
+      
+      <!-- Navigation entre les questions -->
+      <div class="d-flex justify-content-between mb-3">
+        <button id="prev-question-btn" class="btn btn-outline-primary" disabled>
+          <i class="fas fa-arrow-left me-2"></i> Question précédente
+        </button>
+        <button id="next-question-btn" class="btn btn-outline-primary" disabled>
+          Question suivante <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Conteneur de toasts -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+  
+  <!-- Panneau de débogage -->
+  <div id="debug-panel" class="debug-panel" style="display: none;">
+    <div class="debug-header">
+      <span>Console de débogage</span>
+      <button id="clear-debug" class="btn btn-sm btn-dark">Effacer</button>
+      <button id="toggle-debug" class="btn btn-sm btn-dark">Afficher</button>
+    </div>
+    <div id="debug-console" class="debug-console">
+      <!-- Les messages de débogage seront ajoutés ici -->
+    </div>
+  </div>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Fonction pour activer/désactiver le mode débogage
+    function toggleDebugMode() {
+      const debugPanel = document.getElementById('debug-panel');
+      const isVisible = debugPanel.style.display !== 'none';
+      debugPanel.style.display = isVisible ? 'none' : 'flex';
+      localStorage.setItem('debugMode', isVisible ? 'false' : 'true');
+      console.log(`Mode débogage ${isVisible ? 'désactivé' : 'activé'}`);
+    }
+    
+    // Fonction de journalisation pour le débogage
+    function logDebug(message, data = null) {
+      try {
+        const debugConsole = document.getElementById('debug-console');
+        if (!debugConsole) return;
+        
+        const entry = document.createElement('div');
+        entry.className = 'debug-entry';
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'debug-timestamp';
+        timestamp.textContent = new Date().toLocaleTimeString();
+        
+        const messageElement = document.createElement('span');
+        messageElement.className = 'debug-message';
+        messageElement.textContent = message;
+        
+        entry.appendChild(timestamp);
+        entry.appendChild(messageElement);
+        
+        if (data) {
+          try {
+            const dataElement = document.createElement('div');
+            dataElement.className = 'debug-data';
+            
+            if (typeof data === 'object') {
+              dataElement.textContent = JSON.stringify(data, null, 2);
+            } else {
+              dataElement.textContent = data.toString();
+            }
+            
+            entry.appendChild(dataElement);
+          } catch (error) {
+            console.error('Erreur lors de la conversion des données de débogage:', error);
+          }
+        }
+        
+        debugConsole.appendChild(entry);
+        debugConsole.scrollTop = debugConsole.scrollHeight;
+        
+        // Également enregistrer dans la console du navigateur
+        console.log(message, data || '');
+      } catch (error) {
+        console.error('Erreur lors de la journalisation du débogage:', error);
+      }
+    }
+    
+    // Variables globales
+    let gameId = 'cefor-quiz-2025';
+    let sessionId = '';
+    let playerName = '';
+    let playerEmail = '';
+    let playerPhone = '';
+    let currentQuestionIndex = 0;
+    let answeredQuestions = new Set();
+    let playerAnswers = {};
+    let totalQuestions = 0;
+    
+    // Initialiser les variables à partir du localStorage
+    function initializeFromLocalStorage() {
+      try {
+        // Récupérer les informations du joueur
+        playerName = localStorage.getItem('playerName') || '';
+        playerEmail = localStorage.getItem('playerEmail') || '';
+        playerPhone = localStorage.getItem('playerPhone') || '';
+        sessionId = localStorage.getItem('sessionId') || generateUUID();
+        
+        // Récupérer l'état du jeu
+        const savedAnsweredQuestions = localStorage.getItem('answeredQuestions');
+        if (savedAnsweredQuestions) {
+          try {
+            answeredQuestions = new Set(JSON.parse(savedAnsweredQuestions));
+            logDebug('Questions répondues chargées', Array.from(answeredQuestions));
+          } catch (error) {
+            logDebug('ERREUR lors du chargement des questions répondues', { error: error.message });
+            answeredQuestions = new Set();
+          }
+        }
+        
+        const savedPlayerAnswers = localStorage.getItem('playerAnswers');
+        if (savedPlayerAnswers) {
+          try {
+            playerAnswers = JSON.parse(savedPlayerAnswers);
+            logDebug('Réponses du joueur chargées', playerAnswers);
+          } catch (error) {
+            logDebug('ERREUR lors du chargement des réponses du joueur', { error: error.message });
+            playerAnswers = {};
+          }
+        }
+        
+        currentQuestionIndex = parseInt(localStorage.getItem('currentQuestionIndex') || '0', 10);
+        totalQuestions = parseInt(localStorage.getItem('totalQuestions') || '0', 10);
+        
+        // S'assurer que nous avons un nombre total de questions
+        if (totalQuestions < 4) {
+          totalQuestions = 4;
+          localStorage.setItem('totalQuestions', totalQuestions.toString());
+        }
+        
+        logDebug('Variables initialisées depuis le localStorage', {
+          playerName,
+          playerEmail,
+          sessionId,
+          answeredQuestions: Array.from(answeredQuestions),
+          playerAnswers,
+          currentQuestionIndex,
+          totalQuestions
+        });
+      } catch (error) {
+        logDebug('ERREUR lors de l\'initialisation depuis le localStorage', { error: error.message });
+      }
+    }
+    
+    // Initialisation des variables d'écran et d'interface
+    let welcomeScreen, confirmationScreen, gameScreen, currentQuestion, questionCounter;
+    let progressBar, progressInfoStart, progressInfoEnd, prevQuestionBtn, nextQuestionBtn;
+    let burgerMenu, burgerButton, burgerContent, questionList, alreadyParticipatedAlert;
+    
+    // Fonction pour initialiser les références aux éléments DOM
+    function initializeDOMReferences() {
+      try {
+        welcomeScreen = document.getElementById('welcome-screen');
+        confirmationScreen = document.getElementById('confirmation-screen');
+        gameScreen = document.getElementById('game-screen');
+        currentQuestion = document.getElementById('current-question');
+        
+        progressBar = document.querySelector('.progress-bar');
+        progressInfoStart = document.getElementById('progress-info-start');
+        progressInfoEnd = document.getElementById('progress-info-end');
+        
+        prevQuestionBtn = document.getElementById('prev-question-btn');
+        nextQuestionBtn = document.getElementById('next-question-btn');
+        
+        burgerButton = document.getElementById('burger-menu-btn');
+        burgerMenu = document.getElementById('burger-menu');
+        questionList = document.getElementById('question-list');
+        
+        logDebug('Références DOM initialisées');
+      } catch (error) {
+        logDebug('ERREUR lors de l\'initialisation des références DOM', { error: error.message });
+      }
+    }
+    
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+      // Vérifier si le mode débogage était activé précédemment
+      const savedDebugMode = localStorage.getItem('debugMode');
+      if (savedDebugMode === 'true') {
+        document.getElementById('debug-panel').style.display = 'flex';
+      }
+      
+      // Initialiser les références DOM
+      initializeDOMReferences();
+      
+      // Initialiser les variables depuis le localStorage
+      initializeFromLocalStorage();
+      
+      // Configurer les écouteurs d'événements
+      setupEventListeners();
+      
+      // Initialiser le jeu
+      initializeGame();
+      
+      // Ajouter un bouton de débogage
+      addDebugToggleButton();
+      
+      // Mettre à jour la barre de progression
+      updateProgressBar();
+      
+      // Vérifier si toutes les questions ont été répondues
+      checkForEndScreen();
+      
+      logDebug('Application initialisée');
+    });
+    
+    // Configurer les écouteurs d'événements
+    function setupEventListeners() {
+      try {
+        // Écouteur pour le formulaire d'inscription
+        const playerForm = document.getElementById('player-form');
+        if (playerForm) {
+          playerForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            validatePlayerInfo();
+          });
+        }
+        
+        // Écouteur pour le bouton de démarrage du scan
+        const startScanningBtn = document.getElementById('start-scanning-btn');
+        if (startScanningBtn) {
+          startScanningBtn.addEventListener('click', function() {
+            // Assurer que l'écran de jeu est visible
+            confirmationScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            // Mettre à jour la barre de progression
+            updateProgressBar();
+            
+            // Afficher le message pour scanner un QR code
+            showNextQuestionPrompt();
+            
+            logDebug('Démarrage du scan');
+          });
+        }
+        
+        // Écouteur pour le bouton du menu burger
+        if (burgerButton && burgerMenu) {
+          burgerButton.addEventListener('click', function() {
+            const isVisible = burgerMenu.style.display !== 'none';
+            burgerMenu.style.display = isVisible ? 'none' : 'block';
+            questionList.style.display = 'none';
+            logDebug(`Menu burger ${isVisible ? 'fermé' : 'ouvert'}`);
+          });
+        }
+        
+        // Écouteur pour le bouton de visualisation des questions
+        const showQuestionsBtn = document.getElementById('show-questions-btn');
+        if (showQuestionsBtn && questionList) {
+          showQuestionsBtn.addEventListener('click', function() {
+            const isVisible = questionList.style.display !== 'none';
+            questionList.style.display = isVisible ? 'none' : 'block';
+            burgerMenu.style.display = 'none';
+            logDebug(`Liste des questions ${isVisible ? 'fermée' : 'ouverte'}`);
+          });
+        }
+        
+        // Écouteur pour le bouton de redémarrage
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        if (restartGameBtn) {
+          restartGameBtn.addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir recommencer le jeu? Toutes vos réponses seront perdues.')) {
+              // Nettoyer le localStorage
+              localStorage.removeItem('answeredQuestions');
+              localStorage.removeItem('playerAnswers');
+              localStorage.removeItem('currentQuestionIndex');
+              
+              // Recharger la page
+              location.reload();
+              
+              logDebug('Jeu redémarré');
+            }
+          });
+        }
+        
+        // Écouteurs pour les boutons de débogage
+        const clearDebugBtn = document.getElementById('clear-debug');
+        if (clearDebugBtn) {
+          clearDebugBtn.addEventListener('click', function() {
+            const debugConsole = document.getElementById('debug-console');
+            if (debugConsole) {
+              debugConsole.innerHTML = '';
+              logDebug('Console de débogage effacée');
+            }
+          });
+        }
+        
+        const toggleDebugBtn = document.getElementById('toggle-debug');
+        if (toggleDebugBtn) {
+          toggleDebugBtn.addEventListener('click', function() {
+            toggleDebugMode();
+          });
+        }
+        
+        logDebug('Écouteurs d\'événements configurés');
+      } catch (error) {
+        logDebug('ERREUR lors de la configuration des écouteurs d\'événements', { error: error.message });
+      }
+    }
+    
+    // Fonctions de validation
+    function isValidEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+    
+    function isValidPhone(phone) {
+      const phoneRegex = /^[0-9]{10}$/;
+      return phoneRegex.test(phone);
+    }
+    
+    // Valider les informations du joueur
+    function validatePlayerInfo() {
+      try {
+        const nameInput = document.getElementById('player-name');
+        const emailInput = document.getElementById('player-email');
+        const phoneInput = document.getElementById('player-phone');
+        
+        if (!nameInput || !emailInput || !phoneInput) {
+          throw new Error('Champs du formulaire introuvables');
+        }
+        
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        const phone = phoneInput.value.trim();
+        
+        // Valider le nom
+        if (!name) {
+          showToast('Veuillez entrer votre nom', 'warning');
+          nameInput.focus();
+          return false;
+        }
+        
+        // Valider l'email
+        if (!email || !isValidEmail(email)) {
+          showToast('Veuillez entrer une adresse email valide', 'warning');
+          emailInput.focus();
+          return false;
+        }
+        
+        // Valider le téléphone (optionnel)
+        if (phone && !isValidPhone(phone)) {
+          showToast('Veuillez entrer un numéro de téléphone valide (10 chiffres)', 'warning');
+          phoneInput.focus();
+          return false;
+        }
+        
+        // Enregistrer les informations du joueur
+        playerName = name;
+        playerEmail = email;
+        playerPhone = phone;
+        
+        // Générer un ID de session unique
+        sessionId = generateUUID();
+        
+        // Sauvegarder dans le localStorage
+        localStorage.setItem('playerName', playerName);
+        localStorage.setItem('playerEmail', playerEmail);
+        localStorage.setItem('playerPhone', playerPhone);
+        localStorage.setItem('sessionId', sessionId);
+        
+        // Afficher l'écran de confirmation
+        welcomeScreen.style.display = 'none';
+        confirmationScreen.style.display = 'block';
+        
+        // Mettre à jour l'affichage du nom du joueur
+        const playerNameDisplay = document.getElementById('player-name-display');
+        if (playerNameDisplay) {
+          playerNameDisplay.textContent = playerName;
+        }
+        
+        logDebug('Informations du joueur validées', { playerName, playerEmail, playerPhone, sessionId });
+        
+        // Envoyer les informations du joueur au serveur (si nécessaire)
+        // Cette partie peut être implémentée selon les besoins
+        
+        showToast('Inscription réussie!', 'success');
+        return true;
+      } catch (error) {
+        logDebug('ERREUR lors de la validation des informations du joueur', { error: error.message });
+        showToast(`Erreur: ${error.message}`, 'danger');
+        return false;
+      }
+    }
+    
+    // Initialiser le jeu
+    function initializeGame() {
+      try {
+        // Vérifier si le joueur est déjà inscrit
+        if (playerName && playerEmail) {
+          // Mettre à jour l'affichage du nom du joueur
+          const playerNameDisplay = document.getElementById('player-name-display');
+          if (playerNameDisplay) {
+            playerNameDisplay.textContent = playerName;
+          }
+          
+          // Si des questions ont déjà été répondues, afficher l'écran de jeu
+          if (answeredQuestions.size > 0) {
+            welcomeScreen.style.display = 'none';
+            confirmationScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            // Mettre à jour la barre de progression
+            updateProgressBar();
+            
+            // Afficher le message pour scanner le prochain QR code
+            showNextQuestionPrompt();
+            
+            logDebug('Jeu repris avec des questions déjà répondues', {
+              answeredQuestions: Array.from(answeredQuestions),
+              playerAnswers
+            });
+          } else {
+            // Sinon, afficher l'écran de confirmation
+            welcomeScreen.style.display = 'none';
+            confirmationScreen.style.display = 'block';
+            gameScreen.style.display = 'none';
+            
+            logDebug('Jeu initialisé pour un joueur déjà inscrit sans questions répondues');
+          }
+        } else {
+          // Si le joueur n'est pas inscrit, afficher l'écran d'accueil
+          welcomeScreen.style.display = 'block';
+          confirmationScreen.style.display = 'none';
+          gameScreen.style.display = 'none';
+          
+          logDebug('Jeu initialisé pour un nouveau joueur');
+        }
+        
+        // Créer des questions de test si nécessaire
+        if (typeof window.questionsData === 'undefined') {
+          window.questionsData = {
+            gameId: gameId,
+            questions: [
+              {
+                id: 'Q1',
+                title: 'Ingrédients d\'un roux',
+                description: 'Quels sont les ingrédients principaux d\'un roux?',
+                type: 'standard',
+                options: [
+                  'Farine et beurre',
+                  'Œufs et lait',
+                  'Sucre et levure',
+                  'Sel et poivre'
+                ]
+              },
+              {
+                id: 'Q2',
+                title: 'Programme phare du Cefor',
+                description: 'Quel est le programme phare du Cefor?',
+                type: 'standard',
+                options: [
+                  'Cuisine de collectivité',
+                  'Boulangerie-pâtisserie',
+                  'Œnologie',
+                  'Cuisine moléculaire'
+                ]
+              },
+              {
+                id: 'Q3',
+                title: 'Récupérer un caramel tranché',
+                description: 'Comment récupérer un caramel tranché qui est trop liquide?',
+                type: 'standard',
+                options: [
+                  'Ajouter du sucre',
+                  'Ajouter de la crème',
+                  'Le recuire',
+                  'Le mettre au réfrigérateur'
+                ]
+              },
+              {
+                id: 'Q4',
+                title: 'Méthode pédagogique du Cefor',
+                description: 'Quelle est la méthode pédagogique privilégiée au Cefor?',
+                type: 'standard',
+                options: [
+                  'Apprentissage par la pratique',
+                  'Cours magistraux',
+                  'Apprentissage en ligne',
+                  'Auto-formation'
+                ]
+              }
+            ]
+          };
+          
+          // Mettre à jour le nombre total de questions
+          totalQuestions = window.questionsData.questions.length;
+          localStorage.setItem('totalQuestions', totalQuestions.toString());
+          
+          logDebug('Questions de test créées', { totalQuestions });
+        }
+        
+        logDebug('Jeu initialisé avec succès');
+      } catch (error) {
+        logDebug('ERREUR lors de l\'initialisation du jeu', { error: error.message });
+        showToast(`Erreur: ${error.message}`, 'danger');
+      }
+    }
+    
+    // Fonction améliorée pour afficher une question
+    function displayQuestion(question) {
+      try {
+        console.log('Affichage de la question', question);
+        
+        // S'assurer que l'écran de jeu est visible
+        gameScreen.style.display = 'block';
+        
+        // Vérifier que la question est valide
+        if (!question || !question.id || !question.title) {
+          throw new Error('Question invalide');
+        }
+        
+        // S'assurer que la question a des options
+        if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
+          question.options = ['Option A', 'Option B', 'Option C', 'Option D'];
+          console.log(`Options par défaut créées pour la question ${question.id}`);
+        }
+        
+        // S'assurer que la question a une description
+        if (!question.description) {
+          question.description = question.title;
+        }
+        
+        // Vérifier si la question a déjà été répondue
+        const alreadyAnswered = answeredQuestions.has(question.id);
+        const previousAnswer = playerAnswers[question.id];
+        
+        if (alreadyAnswered) {
+          console.log(`Question ${question.id} déjà répondue`, { previousAnswer });
+        }
+        
+        // Construire le contenu HTML de la question
+        let questionHTML = `
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Question: ${question.title}</h5>
+          </div>
+          <div class="card-body">
+            <p class="lead">${question.description}</p>
+            
+            <div class="options-container mt-4">
+        `;
+        
+        // Ajouter les options en fonction du type de question
+        const questionType = question.type || 'standard';
+        
+        if (questionType === 'standard') {
+          // Question à choix multiples
+          questionHTML += question.options.map((option, index) => {
+            const isSelected = previousAnswer === option;
+            return `
+              <div class="form-check mb-3 p-2 ${isSelected ? 'bg-light' : ''}" style="border-radius: 5px;">
+                <input class="form-check-input" type="radio" name="question-option" 
+                  id="option-${index}" value="${option}" ${alreadyAnswered ? 'disabled' : ''} ${isSelected ? 'checked' : ''}>
+                <label class="form-check-label w-100" for="option-${index}">
+                  ${option}
+                </label>
+              </div>
+            `;
+          }).join('');
+        } else if (questionType === 'text') {
+          // Question à réponse libre
+          questionHTML += `
+            <div class="mb-3">
+              <textarea class="form-control" id="text-answer" rows="3" 
+                placeholder="Votre réponse..." ${alreadyAnswered ? 'disabled' : ''}>${previousAnswer || ''}</textarea>
+            </div>
+          `;
+        } else if (questionType === 'number') {
+          // Question numérique
+          questionHTML += `
+            <div class="mb-3">
+              <input type="number" class="form-control" id="number-answer" 
+                placeholder="Votre réponse numérique..." value="${previousAnswer || ''}" ${alreadyAnswered ? 'disabled' : ''}>
+            </div>
+          `;
+        }
+        
+        // Ajouter les boutons d'action
+        questionHTML += `
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+        `;
+        
+        if (!alreadyAnswered) {
+          // Bouton pour soumettre la réponse
+          questionHTML += `
+              <button type="button" id="submit-answer" class="btn btn-primary btn-lg">
+                <i class="fas fa-check me-2"></i> Valider ma réponse
+              </button>
+          `;
+        } else {
+          // Afficher la réponse et le bouton pour continuer
+          questionHTML += `
+              <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Vous avez répondu: <strong>${previousAnswer}</strong>
+              </div>
+              <button type="button" id="continue-btn" class="btn btn-primary btn-lg continue-btn">
+                <i class="fas fa-arrow-right me-2"></i> Continuer
+              </button>
+          `;
+        }
+        
+        questionHTML += `
+            </div>
+          </div>
+        `;
+        
+        // Afficher la question
+        currentQuestion.innerHTML = questionHTML;
+        
+        // Mettre à jour la barre de progression
+        updateProgressBar();
+        
+        // Ajouter les écouteurs d'événements
+        if (!alreadyAnswered) {
+          const submitButton = document.getElementById('submit-answer');
+          if (submitButton) {
+            submitButton.addEventListener('click', () => {
+              try {
+                let answer = '';
+                
+                if (questionType === 'standard') {
+                  // Récupérer la réponse sélectionnée
+                  const selectedOption = document.querySelector('input[name="question-option"]:checked');
+                  if (!selectedOption) {
+                    showToast('Veuillez sélectionner une réponse', 'warning');
+                    return;
+                  }
+                  answer = selectedOption.value;
+                } else if (questionType === 'text') {
+                  // Récupérer la réponse textuelle
+                  const textAnswer = document.getElementById('text-answer');
+                  if (!textAnswer || !textAnswer.value.trim()) {
+                    showToast('Veuillez entrer une réponse', 'warning');
+                    return;
+                  }
+                  answer = textAnswer.value.trim();
+                } else if (questionType === 'number') {
+                  // Récupérer la réponse numérique
+                  const numberAnswer = document.getElementById('number-answer');
+                  if (!numberAnswer || !numberAnswer.value) {
+                    showToast('Veuillez entrer une réponse numérique', 'warning');
+                    return;
+                  }
+                  answer = numberAnswer.value;
+                }
+                
+                // Enregistrer la réponse
+                saveAnswer(question.id, answer);
+                
+                // Afficher un feedback
+                showToast('Votre réponse a été enregistrée.', 'success');
+                
+                // Recharger la question pour afficher le mode "déjà répondu"
+                displayQuestion(question);
+                
+                logDebug('Réponse soumise avec succès', { questionId: question.id, answer });
+              } catch (error) {
+                logDebug('ERREUR lors de la soumission de la réponse', { error: error.message });
+                showToast(`Erreur: ${error.message}`, 'danger');
+              }
+            });
+          }
+        } else {
+          // Ajouter un écouteur d'événement pour le bouton Continuer
+          const continueButton = document.querySelector('.continue-btn');
+          if (continueButton) {
+            continueButton.addEventListener('click', function() {
+              // Vérifier si toutes les questions ont été répondues
+              if (checkForEndScreen()) {
+                return; // L'écran de fin a été affiché
+              }
+              
+              // Sinon, afficher le message pour scanner le prochain QR code
+              showNextQuestionPrompt();
+            });
+          }
+        }
+        
+        logDebug('Question affichée avec succès', { questionId: question.id });
+      } catch (error) {
+        logDebug('ERREUR lors de l\'affichage de la question', { error: error.message });
+        showToast(`Erreur: ${error.message}`, 'danger');
+      }
+    }
+    
+    // Fonction améliorée pour simuler le scan d'un QR code
+    function simulateScan(questionData) {
+      try {
+        console.log('Fonction simulateScan améliorée appelée avec:', questionData);
+        
+        // S'assurer que la question a des options
+        if (!questionData.options || !Array.isArray(questionData.options) || questionData.options.length === 0) {
+          questionData.options = [
+            'Option A',
+            'Option B',
+            'Option C',
+            'Option D'
+          ];
+          console.log(`Options par défaut créées pour la question ${questionData.id}`);
+        }
+        
+        // S'assurer que la question a une description
+        if (!questionData.description) {
+          questionData.description = questionData.title || 'Description par défaut';
+        }
+        
+        // S'assurer que la question a un type
+        if (!questionData.type) {
+          questionData.type = 'standard';
+        }
+        
+        // Mettre à jour l'index de la question courante
+        const currentIndex = parseInt(localStorage.getItem('currentQuestionIndex') || '0');
+        localStorage.setItem('currentQuestionIndex', (currentIndex + 1).toString());
+        
+        // S'assurer que nous avons un nombre total de questions
+        const totalQuestions = parseInt(localStorage.getItem('totalQuestions') || '0');
+        if (totalQuestions < 4) {
+          localStorage.setItem('totalQuestions', '4');
+        }
+        
+        // Afficher la question
+        displayQuestion(questionData);
+        
+        logDebug('Scan simulé avec succès', { questionData });
+      } catch (error) {
+        logDebug('ERREUR lors de la simulation du scan', { error: error.message });
+        showToast(`Erreur lors de l'affichage de la question: ${error.message}`, 'danger');
+      }
+    }
+    
+    // Fonction améliorée pour mettre à jour la barre de progression
+    function updateProgressBar() {
+      try {
+        console.log('Barre de progression mise à jour', { 
+          answeredQuestions: Array.from(answeredQuestions), 
+          totalQuestions 
+        });
+        
+        // S'assurer que nous avons des références valides
+        if (!progressBar || !progressInfoStart || !progressInfoEnd) {
+          logDebug('ERREUR: Éléments de progression introuvables');
+          return;
+        }
+        
+        // S'assurer que nous avons un nombre total de questions
+        if (totalQuestions <= 0) {
+          totalQuestions = 4; // Valeur par défaut
+          localStorage.setItem('totalQuestions', totalQuestions.toString());
+        }
+        
+        // Calculer le pourcentage de progression
+        const answeredCount = answeredQuestions.size;
+        const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+        
+        // Mettre à jour la barre de progression
+        progressBar.style.width = `${progressPercent}%`;
+        progressBar.setAttribute('aria-valuenow', progressPercent);
+        progressBar.textContent = `${progressPercent}%`;
+        
+        // Mettre à jour les informations de progression
+        progressInfoStart.textContent = `${answeredCount} question${answeredCount > 1 ? 's' : ''} répondue${answeredCount > 1 ? 's' : ''}`;
+        progressInfoEnd.textContent = `sur ${totalQuestions} question${totalQuestions > 1 ? 's' : ''}`;
+        
+        // Mettre à jour les boutons de navigation
+        if (prevQuestionBtn && nextQuestionBtn) {
+          // Fonctionnalité de navigation entre questions non implémentée pour l'instant
+          prevQuestionBtn.disabled = true;
+          nextQuestionBtn.disabled = true;
+        }
+        
+        // Vérifier si toutes les questions ont été répondues
+        if (answeredCount >= totalQuestions && totalQuestions > 0) {
+          logDebug('Toutes les questions ont été répondues!');
+        }
+        
+        logDebug('Barre de progression mise à jour avec succès', { 
+          answeredCount, 
+          totalQuestions, 
+          progressPercent 
+        });
+      } catch (error) {
+        logDebug('ERREUR lors de la mise à jour de la barre de progression', { error: error.message });
+      }
+    }
+    
+    // Fonction améliorée pour afficher le message pour scanner le prochain QR code
+    function showNextQuestionPrompt() {
+      try {
+        // Construire le message HTML
+        const promptHTML = `
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i> Scanner un QR code</h5>
+          </div>
+          <div class="card-body text-center">
+            <p class="lead">Scannez un QR code pour afficher la prochaine question.</p>
+            <div class="mb-4">
+              <i class="fas fa-camera fa-4x text-muted mb-3"></i>
+              <p>Pointez votre appareil photo vers un QR code du jeu.</p>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button id="simulate-scan-btn" class="btn btn-outline-primary">
+                <i class="fas fa-vial me-2"></i> Simuler un scan (pour les tests)
+              </button>
+            </div>
+          </div>
+        `;
+        
+        // Afficher le message
+        currentQuestion.innerHTML = promptHTML;
+        
+        // Ajouter un écouteur d'événement pour le bouton de simulation
+        const simulateScanBtn = document.getElementById('simulate-scan-btn');
+        if (simulateScanBtn) {
+          simulateScanBtn.addEventListener('click', function() {
+            // Trouver une question non répondue
+            if (window.questionsData && window.questionsData.questions) {
+              const questions = window.questionsData.questions;
+              let unansweredQuestion = null;
+              
+              for (const question of questions) {
+                if (!answeredQuestions.has(question.id)) {
+                  unansweredQuestion = question;
+                  break;
+                }
+              }
+              
+              if (unansweredQuestion) {
+                simulateScan(unansweredQuestion);
+              } else if (questions.length > 0) {
+                // Si toutes les questions ont été répondues, afficher l'écran de fin
+                if (checkForEndScreen()) {
+                  return; // L'écran de fin a été affiché
+                }
+                
+                // Sinon, réutiliser la première question
+                simulateScan(questions[0]);
+              } else {
+                showToast('Aucune question disponible', 'warning');
+              }
+            } else {
+              showToast('Aucune question disponible', 'warning');
+            }
+          });
+        }
+        
+        // Mettre à jour la barre de progression
+        updateProgressBar();
+        
+        console.log('Message pour scanner le prochain QR code affiché', currentQuestion);
+        logDebug('Message pour scanner le prochain QR code affiché');
+      } catch (error) {
+        logDebug('ERREUR lors de l\'affichage du message pour scanner le prochain QR code', { error: error.message });
+        showToast(`Erreur: ${error.message}`, 'danger');
+      }
+    }
+    
+    // Fonction améliorée pour enregistrer les réponses
+    function saveAnswer(questionId, answer) {
+      try {
+        console.log('Enregistrement de la réponse', { questionId, answer });
+        
+        // Vérifier que les paramètres sont valides
+        if (!questionId) {
+          throw new Error('ID de question invalide');
+        }
+        
+        if (!answer && answer !== 0 && answer !== false) {
+          throw new Error('Réponse invalide');
+        }
+        
+        // Ajouter la question à la liste des questions répondues
+        answeredQuestions.add(questionId);
+        
+        // Enregistrer la réponse
+        playerAnswers[questionId] = answer;
+        
+        // Sauvegarder dans le localStorage
+        localStorage.setItem('answeredQuestions', JSON.stringify(Array.from(answeredQuestions)));
+        localStorage.setItem('playerAnswers', JSON.stringify(playerAnswers));
+        
+        // Mettre à jour la barre de progression
+        updateProgressBar();
+        
+        console.log(`Question ${questionId} marquée comme répondue`, answeredQuestions);
+        logDebug('Réponse enregistrée avec succès', { questionId, answer, answeredQuestions: Array.from(answeredQuestions) });
+        
+        // Vérifier si toutes les questions ont été répondues
+        const totalQuestions = parseInt(localStorage.getItem('totalQuestions') || '0');
+        if (answeredQuestions.size >= totalQuestions && totalQuestions > 0) {
+          logDebug('Toutes les questions ont été répondues!');
+          
+          // Envoyer les réponses au serveur (si nécessaire)
+          // Cette partie peut être implémentée selon les besoins
+        }
+        
+        return true;
+      } catch (error) {
+        logDebug('ERREUR lors de l\'enregistrement de la réponse', { error: error.message });
+        showToast(`Erreur: ${error.message}`, 'danger');
+        return false;
+      }
+    }
+    
+    // Fonction améliorée pour afficher les toasts
+    function showToast(message, type = 'info') {
+      try {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.role = 'alert';
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        const toastContent = document.createElement('div');
+        toastContent.className = 'd-flex';
+        
+        const toastBody = document.createElement('div');
+        toastBody.className = 'toast-body';
+        toastBody.innerHTML = message;
+        
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close btn-close-white me-2 m-auto';
+        closeButton.setAttribute('data-bs-dismiss', 'toast');
+        closeButton.setAttribute('aria-label', 'Fermer');
+        
+        toastContent.appendChild(toastBody);
+        toastContent.appendChild(closeButton);
+        toast.appendChild(toastContent);
+        
+        toastContainer.appendChild(toast);
+        
+        // Afficher le toast
+        const bsToast = new bootstrap.Toast(toast, {
+          autohide: true,
+          delay: 3000
+        });
+        
+        bsToast.show();
+        
+        // Ajouter un écouteur d'événement pour supprimer le toast après sa fermeture
+        toast.addEventListener('hidden.bs.toast', function() {
+          if (toastContainer.contains(toast)) {
+            toastContainer.removeChild(toast);
+          }
+        });
+        
+        // Supprimer le toast après 3 secondes
+        setTimeout(() => {
+          bsToast.hide();
+        }, 3000);
+        
+        logDebug('Toast affiché avec succès', { type, message });
+      } catch (error) {
+        logDebug('ERREUR lors de l\'affichage du toast', { error: error.message });
+        console.error('Erreur lors de l\'affichage du toast:', error);
+      }
+    }
+    
+    // Fonction pour ajouter un bouton de débogage
+    function addDebugToggleButton() {
+      const gameContainer = document.querySelector('.game-container');
+      if (!gameContainer) return;
+      
+      const debugButton = document.createElement('button');
+      debugButton.className = 'btn btn-sm btn-secondary position-fixed';
+      debugButton.style.bottom = '10px';
+      debugButton.style.left = '10px';
+      debugButton.style.zIndex = '9999';
+      debugButton.innerHTML = '<i class="fas fa-bug"></i>';
+      debugButton.title = 'Activer/Désactiver le mode débogage';
+      
+      debugButton.addEventListener('click', function() {
+        const debugPanel = document.getElementById('debug-panel');
+        if (debugPanel) {
+          const isVisible = debugPanel.style.display !== 'none';
+          debugPanel.style.display = isVisible ? 'none' : 'flex';
+          localStorage.setItem('debugMode', isVisible ? 'false' : 'true');
+          console.log(`Mode débogage ${isVisible ? 'désactivé' : 'activé'}`);
+        }
+      });
+      
+      gameContainer.appendChild(debugButton);
+      console.log('Bouton de débogage ajouté');
+    }
+    
+    // Vérifier si un écran de fin doit être affiché
+    function checkForEndScreen() {
+      const answeredQuestions = new Set(JSON.parse(localStorage.getItem('answeredQuestions') || '[]'));
+      const totalQuestions = parseInt(localStorage.getItem('totalQuestions') || '0', 10);
+      
+      if (totalQuestions > 0 && answeredQuestions.size >= totalQuestions) {
+        // Toutes les questions ont été répondues, afficher l'écran de fin
+        showEndScreen();
+        return true;
+      }
+      
+      return false;
+    }
+    
+    // Afficher l'écran de fin
+    function showEndScreen() {
+      // Créer l'écran de fin s'il n'existe pas
+      let endScreen = document.getElementById('end-screen');
+      if (!endScreen) {
+        const gameContainer = document.querySelector('.game-container');
+        if (!gameContainer) return false;
+        
+        endScreen = document.createElement('div');
+        endScreen.id = 'end-screen';
+        endScreen.style.display = 'none';
+        endScreen.innerHTML = `
+          <div class="text-center mb-4">
+            <h1>Félicitations !</h1>
+            <p class="lead">Vous avez terminé toutes les questions du jeu.</p>
+          </div>
+          
+          <div class="card mb-4">
+            <div class="card-body">
+              <h3><i class="fas fa-trophy me-2"></i> Résultats</h3>
+              <p>Vous avez répondu à <span id="questions-completed">0</span> questions sur <span id="total-questions-end">0</span>.</p>
+              
+              <div class="progress mb-4">
+                <div class="progress-bar bg-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+              </div>
+              
+              <div id="answers-summary" class="mb-4">
+                <!-- Les réponses seront affichées ici -->
+              </div>
+              
+              <div class="d-grid gap-2">
+                <button id="restart-game-btn" class="btn btn-primary btn-lg">
+                  <i class="fas fa-redo me-2"></i> Recommencer le jeu
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        gameContainer.appendChild(endScreen);
+        
+        // Ajouter un écouteur d'événement pour le bouton de redémarrage
+        const restartButton = document.getElementById('restart-game-btn');
+        if (restartButton) {
+          restartButton.addEventListener('click', function() {
+            // Nettoyer le localStorage et redémarrer le jeu
+            localStorage.removeItem('answeredQuestions');
+            localStorage.removeItem('playerAnswers');
+            localStorage.removeItem('currentQuestionIndex');
+            
+            // Afficher l'écran d'accueil
+            document.getElementById('end-screen').style.display = 'none';
+            document.getElementById('welcome-screen').style.display = 'block';
+            document.getElementById('confirmation-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'none';
+          });
+        }
+      }
+      
+      // Cacher tous les autres écrans
+      document.getElementById('welcome-screen').style.display = 'none';
+      document.getElementById('confirmation-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'none';
+      
+      // Afficher l'écran de fin
+      endScreen.style.display = 'block';
+      
+      // Mettre à jour les informations de progression
+      const answeredQuestions = new Set(JSON.parse(localStorage.getItem('answeredQuestions') || '[]'));
+      const totalQuestions = parseInt(localStorage.getItem('totalQuestions') || '0', 10);
+      const playerAnswers = JSON.parse(localStorage.getItem('playerAnswers') || '{}');
+      
+      document.getElementById('questions-completed').textContent = answeredQuestions.size;
+      document.getElementById('total-questions-end').textContent = totalQuestions;
+      
+      // Mettre à jour la barre de progression
+      const progressBar = endScreen.querySelector('.progress-bar');
+      const progressPercent = totalQuestions > 0 ? Math.round((answeredQuestions.size / totalQuestions) * 100) : 0;
+      progressBar.style.width = `${progressPercent}%`;
+      progressBar.setAttribute('aria-valuenow', progressPercent);
+      progressBar.textContent = `${progressPercent}%`;
+      
+      // Afficher le résumé des réponses
+      const answersSummary = document.getElementById('answers-summary');
+      if (answersSummary) {
+        answersSummary.innerHTML = '';
+        
+        if (answeredQuestions.size > 0) {
+          const summaryTitle = document.createElement('h4');
+          summaryTitle.textContent = 'Vos réponses :';
+          answersSummary.appendChild(summaryTitle);
+          
+          const answersList = document.createElement('ul');
+          answersList.className = 'list-group';
+          
+          // Trier les questions par ID
+          const sortedQuestions = Array.from(answeredQuestions).sort();
+          
+          sortedQuestions.forEach(questionId => {
+            const answer = playerAnswers[questionId];
+            
+            const listItem = document.createElement('li');
+            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+            
+            // Trouver le titre de la question
+            let questionTitle = questionId;
+            if (window.questionsData && window.questionsData.questions) {
+              const question = window.questionsData.questions.find(q => q.id === questionId);
+              if (question) {
+                questionTitle = question.title;
+              }
+            }
+            
+            listItem.innerHTML = `
+              <div>
+                <strong>${questionTitle}</strong>
+                <div><small class="text-muted">Votre réponse : ${answer}</small></div>
+              </div>
+            `;
+            
+            answersList.appendChild(listItem);
+          });
+          
+          answersSummary.appendChild(answersList);
+        } else {
+          answersSummary.innerHTML = '<p>Aucune réponse enregistrée.</p>';
+        }
+      }
+      
+      console.log('Écran de fin affiché');
+      return true;
+    }
+    
+    // Générer un UUID unique pour la session
+    function generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+  </script>
+</body>
+</html>
