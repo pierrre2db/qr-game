@@ -1,6 +1,6 @@
-# Guide d'utilisation QR Game
+# Guide d'utilisation QR Game CEFOR
 
-Ce manuel utilisateur complet explique comment utiliser toutes les fonctionnalités de QR Game, tant pour les administrateurs que pour les joueurs.
+Ce guide utilisateur complet explique comment utiliser toutes les fonctionnalités de QR Game CEFOR, tant pour les administrateurs que pour les joueurs.
 
 ## Table des matières
 
@@ -9,22 +9,27 @@ Ce manuel utilisateur complet explique comment utiliser toutes les fonctionnalit
    - [Accéder au jeu](#accéder-au-jeu)
    - [Jouer au jeu](#jouer-au-jeu)
    - [Scanner des QR codes](#scanner-des-qr-codes)
+   - [Navigation non-linéaire](#navigation-non-linéaire)
    - [Suivre sa progression](#suivre-sa-progression)
+   - [Écran de fin](#écran-de-fin)
 3. [Pour les administrateurs](#pour-les-administrateurs)
-   - [Vue d'ensemble des interfaces d'administration](#vue-densemble-des-interfaces-dadministration)
-   - [Tableau de bord](#tableau-de-bord)
-   - [Gestion des questions](#gestion-des-questions)
+   - [Gestion du fichier JSON](#gestion-du-fichier-json)
    - [Génération de QR codes](#génération-de-qr-codes)
-   - [Paramètres](#paramètres)
-   - [Sauvegarde et restauration](#sauvegarde-et-restauration)
+   - [Récupération des résultats](#récupération-des-résultats)
 4. [Types de questions](#types-de-questions)
 5. [Structure des données](#structure-des-données)
 6. [Astuces et bonnes pratiques](#astuces-et-bonnes-pratiques)
-7. [Résolution des problèmes courants](#résolution-des-problèmes-courants)
+7. [Évolutions futures](#évolutions-futures)
+8. [Résolution des problèmes courants](#résolution-des-problèmes-courants)
 
 ## Introduction
 
-QR Game est une application web qui permet de créer et gérer un jeu de questions-réponses interactif utilisant des QR codes. Les joueurs peuvent scanner des QR codes pour accéder aux questions et y répondre, tandis que les administrateurs peuvent gérer les questions, générer des QR codes et suivre les statistiques des joueurs.
+QR Game CEFOR est une application web progressive (PWA) développée pour le Centre de Formation CEFOR, permettant de créer et gérer une chasse au trésor interactive basée sur des codes QR. L'application est entièrement modulaire et s'adapte automatiquement au contenu du fichier JSON de configuration.
+
+Caractéristiques principales :
+- **Modularité** : Le nombre et le contenu des questions dépendent entièrement du fichier JSON
+- **Navigation non-linéaire** : Les joueurs peuvent scanner les QR codes dans n'importe quel ordre
+- **Persistance** : Le système mémorise les questions déjà répondues et refuse les doublons
 
 ## Pour les joueurs
 

@@ -1,8 +1,14 @@
-# Manuel Utilisateur - QR Game PWA
+# Manuel Utilisateur - QR Game CEFOR
 
 ## Présentation du projet
 
-QR Game est une application web progressive (PWA) permettant de créer et gérer des jeux basés sur des codes QR. Les joueurs scannent des codes QR pour accéder à différents défis, répondre à des questions et suivre leur progression. L'application dispose d'une interface d'administration complète pour gérer les questions, visualiser les statistiques et exporter les données.
+QR Game est une application web progressive (PWA) développée pour le CEFOR (Centre de Formation) permettant de créer et gérer une chasse au trésor interactive basée sur des codes QR. L'application est entièrement modulaire et s'adapte automatiquement au contenu du fichier JSON de configuration.
+
+Le jeu comprend deux composantes principales :
+
+1. **Application mobile pour les joueurs** : Interface intuitive permettant de scanner des QR codes placés dans l'environnement et de répondre aux questions dans n'importe quel ordre.
+
+2. **Interface d'administration** : Permet de gérer les questions via un fichier JSON, de générer des QR codes pour impression, et d'identifier le gagnant à la fin de l'événement.
 
 ## Architecture technique
 
