@@ -1,35 +1,72 @@
-# QR Game - Application Interactive de Chasse au Trésor via QR Codes
+# QR Game CEFOR - Chasse au Trésor Interactive via QR Codes
 
-Une application web progressive (PWA) permettant aux utilisateurs de scanner des QR codes dans le cadre d'une expérience de jeu interactive développée pour le CEFOR (Centre de Formation). L'application est entièrement modulaire et s'adapte automatiquement au contenu du fichier JSON de configuration.
+![Version](https://img.shields.io/badge/version-3.0-blue.svg)
+![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
 
-## Fonctionnalités
+Une application web progressive (PWA) permettant de créer et gérer une chasse au trésor interactive basée sur des codes QR, développée pour le CEFOR (Centre de Formation).
+
+## À propos du projet
+
+QR Game CEFOR est une application entièrement modulaire qui s'adapte automatiquement au contenu d'un fichier JSON de configuration. Le jeu permet aux participants de scanner des QR codes placés dans l'environnement et de répondre à des questions dans n'importe quel ordre, offrant ainsi une expérience de jeu non-linéaire et personnalisée.
+
+## Fonctionnalités principales
 
 ### Interface joueur
-- Application web progressive (installable sur les appareils mobiles)
-- Scan de QR codes pour naviguer entre les questions
-- Navigation non-linéaire (les questions peuvent être répondues dans n'importe quel ordre)
-- Mémorisation des questions déjà répondues et refus des doublons
-- Persistance des données via localStorage
-- Barre de progression adaptée au nombre total de questions
-- Écran de fin récapitulatif avec toutes les réponses données
-- Interface responsive adaptée à tous les appareils
+- **Navigation non-linéaire** : Les joueurs peuvent scanner les QR codes dans n'importe quel ordre
+- **Modularité complète** : Le nombre et le contenu des questions dépendent du fichier JSON
+- **Persistance des données** : Sauvegarde locale des réponses et progression
+- **Interface responsive** : Adaptée à tous les appareils mobiles
+- **Écran de fin récapitulatif** : Résumé des réponses et du score
 
 ### Interface administrateur
-- Gestion complète des questions via fichier JSON
-- Génération de QR codes pour impression
-- Export des QR codes au format PDF avec titres des questions
-- Récupération des données des joueurs à la fin de la durée du jeu
-- Identification du gagnant à la fin de l'événement
+- **Gestion des questions** via fichier JSON
+- **Génération de QR codes** pour impression avec titres
+- **Export PDF** des QR codes
+- **Identification du gagnant** à la fin de l'événement
+
+## Documentation
+
+Le projet est accompagné d'une documentation complète pour tous les utilisateurs :
+
+- [README-COMPLET.md](README-COMPLET.md) - Vue d'ensemble détaillée du projet
+- [GUIDE-TECHNIQUE.md](GUIDE-TECHNIQUE.md) - Documentation technique pour les développeurs
+- [GUIDE-ADMINISTRATEUR.md](GUIDE-ADMINISTRATEUR.md) - Guide pour les administrateurs
+- [GUIDE-JOUEUR.md](GUIDE-JOUEUR.md) - Instructions pour les participants
+- [MANUEL-UTILISATEUR.md](MANUEL-UTILISATEUR.md) - Manuel utilisateur général
+
+## Structure du projet
+
+```
+qr-game/
+├── public/                  # Fichiers accessibles publiquement
+│   ├── game-v3.html         # Version actuelle du jeu
+│   ├── admin.html           # Interface d'administration
+│   ├── js/                  # Scripts JavaScript
+│   └── css/                 # Feuilles de style CSS
+├── data/                    # Données de l'application
+│   ├── questions.json       # Configuration des questions
+│   └── responses.json       # Réponses des joueurs
+├── server.js                # Serveur principal
+├── test-*.js                # Scripts de test
+└── *.md                     # Documentation
+```
+
+## Branches
+
+Le projet est organisé en plusieurs branches :
+
+- **main** - Branche principale du projet
+- **documentation** - Documentation complète du projet
+- **version-v3** - Dernière version du code avec modularité et navigation non-linéaire
 
 ## Stack technique
 
-- Frontend: HTML, CSS, JavaScript, Bootstrap 5
-- Scan QR: Bibliothèque HTML5-QRCode
-- Backend: Node.js avec Express
-- Stockage: Fichiers JSON
-- Fonctionnalités PWA: Service Worker, Web App Manifest
-- Visualisation: Chart.js
-- Tests: Jest, Puppeteer, Supertest
+- **Frontend** : HTML, CSS, JavaScript, Bootstrap 5
+- **Scan QR** : Bibliothèque HTML5-QRCode
+- **Backend** : Node.js avec Express
+- **Stockage** : Fichiers JSON
+- **Fonctionnalités PWA** : Service Worker, Web App Manifest
+- **Tests** : Jest, Puppeteer, Supertest
 
 ## Démarrage rapide
 
@@ -41,15 +78,59 @@ Une application web progressive (PWA) permettant aux utilisateurs de scanner des
 ### Installation
 
 1. Clonez le dépôt
-2. Installez les dépendances:
+   ```bash
+   git clone https://github.com/pierrre2db/qr-game.git
+   cd qr-game
    ```
+
+2. Installez les dépendances
+   ```bash
    npm install
    ```
-3. Démarrez le serveur de développement:
-   ```
+
+3. Démarrez le serveur
+   ```bash
    node server.js
    ```
-4. Ouvrez votre navigateur et accédez à `http://localhost:3000`
+
+4. Accédez à l'application
+   - Interface joueur : http://localhost:3000/game-v3.html
+   - Interface admin : http://localhost:3000/admin.html
+
+## Tests
+
+Le projet comprend un ensemble complet de tests automatiques :
+
+```bash
+# Exécuter tous les tests
+npm test
+
+# Tester le parcours utilisateur complet
+node test-user-journey.js
+
+# Tester toutes les questions
+node test-all-questions.js
+```
+
+## Contribution
+
+Les contributions sont les bienvenues ! Voici comment contribuer au projet :
+
+1. Forkez le projet
+2. Créez votre branche de fonctionnalité (`git checkout -b feature/nouvelle-fonctionnalite`)
+3. Committez vos changements (`git commit -m 'Ajout d'une nouvelle fonctionnalité'`)
+4. Poussez vers la branche (`git push origin feature/nouvelle-fonctionnalite`)
+5. Ouvrez une Pull Request
+
+## Licence
+
+Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
+
+## Contact
+
+Pierre - [@pierrre2db](https://github.com/pierrre2db)
+
+Lien du projet : [https://github.com/pierrre2db/qr-game](https://github.com/pierrre2db/qr-game)
 
 ## Comment jouer
 

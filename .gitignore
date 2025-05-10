@@ -3,7 +3,6 @@ node_modules/
 npm-debug.log
 yarn-error.log
 yarn-debug.log
-package-lock.json
 
 # Environnement
 .env
@@ -36,9 +35,32 @@ coverage/
 
 # Sauvegardes
 backups/
+*.bak
+*.backup
+*.old
 
 # Fichiers temporaires
 temp/
 tmp/
 .tmp/
-node_modules
+
+# Fichiers spécifiques au projet QR Game
+public/*.html.bak
+public/*.html.backup
+public/game-v*.html.backup
+server.js.bak
+
+# Fichiers de test générés
+user-journey-screenshots/
+user-journey-reports/
+test-screenshots/
+test-complete-screenshots/
+test-complete-reports/
+
+# Fichiers de développement
+.windsurf/
+
+# Garder les fichiers importants
+!package-lock.json
+!data/questions.json
+!data/qr-config.json
